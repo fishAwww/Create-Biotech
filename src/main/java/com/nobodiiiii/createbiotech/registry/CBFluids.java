@@ -33,6 +33,8 @@ public class CBFluids {
 	public static final RegistryObject<LiquidLivingSlimeFluidType> LIQUID_LIVING_SLIME_TYPE =
 		FLUID_TYPES.register("liquid_living_slime",
 			() -> new LiquidLivingSlimeFluidType(FluidType.Properties.create()
+				.motionScale(0.004D)
+				.fallDistanceModifier(0F)
 				.viscosity(5000)
 				.density(1400)));
 
@@ -63,6 +65,7 @@ public class CBFluids {
 			LIQUID_LIVING_SLIME_TYPE,
 			LIQUID_LIVING_SLIME,
 			LIQUID_LIVING_SLIME_FLOWING)
+			.bucket(LIQUID_LIVING_SLIME_BUCKET)
 			.block(LIQUID_LIVING_SLIME_BLOCK)
 			.levelDecreasePerBlock(2)
 			.tickRate(60)
