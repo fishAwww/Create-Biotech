@@ -289,8 +289,8 @@ public class SchrodingersCatBlockEntity extends SmartBlockEntity {
 	}
 
 	private enum SchrodingersCatOutputMode implements INamedIconOptions {
-		SUSTAINED(AllIcons.I_ACTIVE),
-		PULSE(AllIcons.I_MTD_REPLAY);
+		SUSTAINED(AllIcons.I_CONFIG_LOCKED),
+		PULSE(AllIcons.I_CONFIG_UNLOCKED);
 
 		private final AllIcons icon;
 		private final String translationKey;
