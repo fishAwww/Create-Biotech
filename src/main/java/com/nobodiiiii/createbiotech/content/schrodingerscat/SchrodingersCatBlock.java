@@ -71,8 +71,6 @@ public class SchrodingersCatBlock extends BaseEntityBlock {
 	@Override
 	public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state,
 		BlockEntityType<T> type) {
-		if (level.isClientSide())
-			return null;
 		return createTickerHelper(type, CBBlockEntityTypes.SCHRODINGERS_CAT.get(), SchrodingersCatBlockEntity::tick);
 	}
 
@@ -87,17 +85,11 @@ public class SchrodingersCatBlock extends BaseEntityBlock {
 		if (!(be instanceof SchrodingersCatBlockEntity cat))
 			return 0;
 
-		Direction face = state.getValue(FACING);
-		Direction faceBack = face.getOpposite();
-		Direction left = face.getCounterClockWise();
-		Direction right = face.getClockWise();
+		Direction front = state.getValue(FACING);
+		Direction back = front.getOpposite();
 
-		if (side == faceBack)
-			return cat.getSignalStrength();
-		if (side == left)
-			return cat.getLeftPulse() ? 15 : 0;
-		if (side == right)
-			return cat.getRightPulse() ? 15 : 0;
+		if (side == back)
+			return cat.getOutputSignal();
 		return 0;
 	}
 
@@ -105,10 +97,8 @@ public class SchrodingersCatBlock extends BaseEntityBlock {
 	public boolean canConnectRedstone(BlockState state, BlockGetter world, BlockPos pos, Direction side) {
 		if (side == null)
 			return false;
-		Direction face = state.getValue(FACING);
-		Direction faceBack = face.getOpposite();
-		Direction left = face.getCounterClockWise();
-		Direction right = face.getClockWise();
-		return side == faceBack || side == left || side == right;
+		Direction front = state.getValue(FACING);
+		Direction back = front.getOpposite();
+		return side == back;
 	}
 }
