@@ -20,12 +20,12 @@ public class LiquidLivingSlimeFluidType extends FluidType {
 
 			@Override
 			public ResourceLocation getStillTexture() {
-				return new ResourceLocation("minecraft", "block/slime_block");
+				return new ResourceLocation("create_biotech", "fluid/liquid_living_slime_still");
 			}
 
 			@Override
 			public ResourceLocation getFlowingTexture() {
-				return new ResourceLocation("minecraft", "block/slime_block");
+				return new ResourceLocation("create_biotech", "fluid/liquid_living_slime_flow");
 			}
 
 			@Override
