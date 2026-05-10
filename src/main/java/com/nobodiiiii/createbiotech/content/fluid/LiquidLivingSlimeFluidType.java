@@ -27,7 +27,7 @@ public class LiquidLivingSlimeFluidType extends FluidType {
 		new ResourceLocation("create_biotech", "fluid/liquid_living_slime_still");
 	private static final ResourceLocation FLOWING_TEXTURE =
 		new ResourceLocation("create_biotech", "fluid/liquid_living_slime_flow");
-	private static final Vector3f SUBMERGED_FOG_COLOR = new Vector3f(0.78F, 0.95F, 0.73F);
+	private static final Vector3f SUBMERGED_FOG_COLOR = new Vector3f(0.48F, 0.86F, 0.42F);
 	private static final float FOG_DISTANCE_MODIFIER = 1F / 10F;
 	private static final float MOVE_SCALE = 0.011F;
 	private static final float BASE_DRAG = 0.72F;

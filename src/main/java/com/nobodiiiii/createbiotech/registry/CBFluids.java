@@ -6,10 +6,12 @@ import com.nobodiiiii.createbiotech.content.fluid.LiquidLivingSlimeFluidType;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.common.SoundActions;
 import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.fluids.ForgeFlowingFluid;
 import net.minecraftforge.registries.DeferredRegister;
@@ -35,6 +37,8 @@ public class CBFluids {
 			() -> new LiquidLivingSlimeFluidType(FluidType.Properties.create()
 				.motionScale(0.004D)
 				.fallDistanceModifier(0F)
+				.sound(SoundActions.BUCKET_FILL, SoundEvents.SLIME_JUMP)
+				.sound(SoundActions.BUCKET_EMPTY, SoundEvents.SLIME_JUMP)
 				.viscosity(5000)
 				.density(1400)));
 
