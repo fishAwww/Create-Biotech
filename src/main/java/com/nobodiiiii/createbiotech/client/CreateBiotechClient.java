@@ -93,7 +93,7 @@ public class CreateBiotechClient {
 					model -> new CTModel(model, new CasingConnectedHorizontalCTBehaviour(
 						CBSpriteShifts.EXPLOSION_PROOF_CASING_SIDE, CBSpriteShifts.EXPLOSION_PROOF_CASING)));
 			CreateClient.MODEL_SWAPPER.getCustomBlockModels()
-				.register(CreateBiotech.asResource("creeper_blast_chamber_formed"),
+				.register(CreateBiotech.asResource("creeper_blast_chamber"),
 					model -> new CTModel(model, new CasingConnectedHorizontalCTBehaviour(
 						CBSpriteShifts.EXPLOSION_PROOF_CASING_SIDE, CBSpriteShifts.EXPLOSION_PROOF_CASING)));
 			CreateClient.MODEL_SWAPPER.getCustomBlockModels()

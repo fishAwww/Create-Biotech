@@ -50,6 +50,9 @@ public class CreeperBlastChamberRenderer implements BlockEntityRenderer<CreeperB
 		float progress = be.displayGauge.getValue(partialTicks);
 
 		if (be.isStructureValid()) {
+			RenderSystem.disableDepthTest();
+			renderFormedPanels(be, ms, vb, blockState, level, progress);
+			RenderSystem.enableDepthTest();
 			if (be.shouldRenderCreeperFace())
 				renderCreeperFace(be, ms, vb, blockState, level);
 			renderAnimatedCreepers(be, partialTicks, ms, buffer);
@@ -57,6 +60,32 @@ public class CreeperBlastChamberRenderer implements BlockEntityRenderer<CreeperB
 		}
 
 		renderStandalonePanels(be, ms, vb, blockState, level, progress);
+	}
+
+	private void renderFormedPanels(CreeperBlastChamberBlockEntity be, PoseStack ms, VertexConsumer vb,
+		BlockState blockState, Level level, float progress) {
+		BlockPos origin = be.getStructureOrigin();
+		if (origin == null)
+			return;
+
+		int size = be.getStructureSize();
+		int half = size / 2;
+		for (Direction d : Iterate.horizontalDirections) {
+			BlockPos wallPos = origin.offset(
+				d.getAxis() == Direction.Axis.X ? (d.getAxisDirection() == Direction.AxisDirection.POSITIVE ? size - 1 : 0)
+					: half,
+				0,
+				d.getAxis() == Direction.Axis.Z ? (d.getAxisDirection() == Direction.AxisDirection.POSITIVE ? size - 1 : 0)
+					: half);
+
+			ms.pushPose();
+			ms.translate(
+				wallPos.getX() - be.getBlockPos().getX() + 0.5d,
+				wallPos.getY() - be.getBlockPos().getY() + 0.5d,
+				wallPos.getZ() - be.getBlockPos().getZ() + 0.5d);
+			renderGauge(ms, vb, blockState, d, LevelRenderer.getLightColor(level, wallPos.relative(d)), progress);
+			ms.popPose();
+		}
 	}
 
 	private void renderStandalonePanels(CreeperBlastChamberBlockEntity be, PoseStack ms, VertexConsumer vb,
@@ -102,7 +131,6 @@ public class CreeperBlastChamberRenderer implements BlockEntityRenderer<CreeperB
 			CachedBuffers.partial(CREEPER_FACE, blockState)
 				.rotateYDegrees(-d.toYRot() - 90)
 				.uncenter()
-				.translate(1f / 2f - 6f / 16f, 0, 0)
 				.light(LevelRenderer.getLightColor(level, pos.relative(d)))
 				.renderInto(ms, vb);
 			ms.popPose();
