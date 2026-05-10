@@ -54,7 +54,7 @@ public class SchrodingersCatRenderer extends SmartBlockEntityRenderer<Schrodinge
 
 		CachedBuffers.partial(powered ? TORCH_ON : TORCH_OFF, state)
 			.center()
-			.rotateYDegrees(blockModelYRotation(facing.getOpposite()))
+			.rotateYDegrees(torchModelYRotation(facing))
 			.uncenter()
 			.light(packedLight)
 			.renderInto(poseStack, cutoutBuffer);
@@ -85,6 +85,15 @@ public class SchrodingersCatRenderer extends SmartBlockEntityRenderer<Schrodinge
 		case SOUTH -> 180;
 		case WEST -> 270;
 		default -> 0;
+		};
+	}
+
+	private static int torchModelYRotation(Direction facing) {
+		return switch (facing) {
+			case EAST -> 270;
+			case SOUTH -> 180;
+			case WEST -> 90;
+			default -> 0;
 		};
 	}
 }
