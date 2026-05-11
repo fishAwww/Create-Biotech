@@ -4,6 +4,7 @@ import com.nobodiiiii.createbiotech.CreateBiotech;
 import com.nobodiiiii.createbiotech.content.evokertank.EvokerTankBlockEntity;
 import com.nobodiiiii.createbiotech.content.explosionproofitemvault.ExplosionProofItemVaultBlockEntity;
 import com.nobodiiiii.createbiotech.content.fixedcarrotfishingrod.FixedCarrotFishingRodBlockEntity;
+import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHotAirBalloonAssemblyStationBlockEntity;
 import com.nobodiiiii.createbiotech.content.schrodingerscat.SchrodingersCatBlockEntity;
 import com.nobodiiiii.createbiotech.content.magmabelt.MagmaBeltBlockEntity;
 import com.nobodiiiii.createbiotech.content.powerbelt.PowerBeltBlockEntity;
@@ -58,6 +59,13 @@ public class CBBlockEntityTypes {
 		BLOCK_ENTITY_TYPES.register("fixed_carrot_fishing_rod",
 			() -> BlockEntityType.Builder
 				.of(FixedCarrotFishingRodBlockEntity::new, CBBlocks.FIXED_CARROT_FISHING_ROD.get())
+				.build(null));
+
+	public static final RegistryObject<BlockEntityType<GhastHotAirBalloonAssemblyStationBlockEntity>> GHAST_HOT_AIR_BALLOON_ASSEMBLY_STATION =
+		BLOCK_ENTITY_TYPES.register("ghast_hot_air_balloon_assembly_station",
+			() -> BlockEntityType.Builder
+				.of(GhastHotAirBalloonAssemblyStationBlockEntity::new,
+					CBBlocks.GHAST_HOT_AIR_BALLOON_ASSEMBLY_STATION.get())
 				.build(null));
 
 	public static final RegistryObject<BlockEntityType<CreeperBlastChamberBlockEntity>> CREEPER_BLAST_CHAMBER =

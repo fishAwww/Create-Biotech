@@ -4,6 +4,7 @@ import com.nobodiiiii.createbiotech.CreateBiotech;
 import com.nobodiiiii.createbiotech.content.evokertank.EvokerTankBlock;
 import com.nobodiiiii.createbiotech.content.explosionproofitemvault.ExplosionProofItemVaultBlock;
 import com.nobodiiiii.createbiotech.content.fixedcarrotfishingrod.FixedCarrotFishingRodBlock;
+import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHotAirBalloonAssemblyStationBlock;
 import com.nobodiiiii.createbiotech.content.magmabelt.MagmaBeltBlock;
 import com.nobodiiiii.createbiotech.content.powerbelt.PowerBeltBlock;
 import com.nobodiiiii.createbiotech.content.slimebelt.SlimeBeltBlock;
@@ -69,6 +70,14 @@ public class CBBlocks {
 			() -> new FixedCarrotFishingRodBlock(Block.Properties.of()
 				.sound(SoundType.WOOD)
 				.strength(0.4f)
+				.mapColor(MapColor.WOOD)
+				.noOcclusion()));
+
+	public static final RegistryObject<GhastHotAirBalloonAssemblyStationBlock> GHAST_HOT_AIR_BALLOON_ASSEMBLY_STATION =
+		BLOCKS.register("ghast_hot_air_balloon_assembly_station",
+			() -> new GhastHotAirBalloonAssemblyStationBlock(Block.Properties.of()
+				.sound(SoundType.WOOD)
+				.strength(2.0f)
 				.mapColor(MapColor.WOOD)
 				.noOcclusion()));
 

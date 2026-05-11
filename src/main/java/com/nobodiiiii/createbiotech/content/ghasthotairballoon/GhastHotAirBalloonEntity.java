@@ -6,22 +6,20 @@ import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.level.Level;
 
 public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
-
-	public static final double Y_OFFSET = 4.0;
 
 	public GhastHotAirBalloonEntity(EntityType<?> type, Level level) {
 		super(type, level);
 	}
 
-	public static GhastHotAirBalloonEntity create(Level level, GhastHotAirBalloonContraption contraption, Ghast ghast) {
+	public static GhastHotAirBalloonEntity create(Level level, GhastHotAirBalloonContraption contraption,
+												  Direction initialOrientation) {
 		GhastHotAirBalloonEntity entity =
 			new GhastHotAirBalloonEntity(CBEntityTypes.GHAST_HOT_AIR_BALLOON.get(), level);
 		entity.setContraption(contraption);
-		entity.setInitialOrientation(Direction.fromYRot(ghast.getYRot()));
+		entity.setInitialOrientation(initialOrientation);
 		entity.startAtInitialYaw();
 		return entity;
 	}
@@ -31,7 +29,13 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 		Entity vehicle = getVehicle();
 		if (vehicle == null)
 			return 0;
-		return -Y_OFFSET - vehicle.getPassengersRidingOffset();
+		return -getCordOffset() - vehicle.getPassengersRidingOffset();
+	}
+
+	private double getCordOffset() {
+		if (getContraption() instanceof GhastHotAirBalloonContraption gc)
+			return gc.getInitialOffset();
+		return 0;
 	}
 
 	public static EntityType.Builder<?> build(EntityType.Builder<?> builder) {
