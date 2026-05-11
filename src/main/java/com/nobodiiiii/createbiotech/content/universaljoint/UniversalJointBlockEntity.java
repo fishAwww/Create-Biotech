@@ -12,6 +12,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -20,6 +22,8 @@ public class UniversalJointBlockEntity extends KineticBlockEntity {
 
 	private static final double ENDPOINT_INNER_OFFSET = 4 / 16d;
 	private static final double SHAFT_SIDE_EPSILON = 1.0E-7d;
+	private static final double SHAFT_RADIUS = 4 / 16d / 2d;
+	private static final Vec3 SHAFT_STUCK_MULTIPLIER = new Vec3(0.4d, 0.4d, 0.4d);
 
 	@Nullable
 	private BlockPos linkedPos;
@@ -63,6 +67,85 @@ public class UniversalJointBlockEntity extends KineticBlockEntity {
 			updateSpeed = true;
 		}
 		notifyUpdate();
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+		applyShaftSlowEffect();
+	}
+
+	private void applyShaftSlowEffect() {
+		if (level == null || linkedPos == null)
+			return;
+		if (!isPrimaryEndpoint(getBlockPos(), linkedPos))
+			return;
+		if (!level.isLoaded(linkedPos))
+			return;
+
+		BlockEntity linkedBlockEntity = level.getBlockEntity(linkedPos);
+		if (!(linkedBlockEntity instanceof UniversalJointBlockEntity linkedJoint))
+			return;
+		if (!getBlockPos().equals(linkedJoint.getLinkedPos()))
+			return;
+
+		BlockState state = getBlockState();
+		BlockState linkedState = linkedJoint.getBlockState();
+		if (!state.hasProperty(UniversalJointBlock.FACING) || !linkedState.hasProperty(UniversalJointBlock.FACING))
+			return;
+
+		Vec3 start = getInnerEndpoint(getBlockPos(), state);
+		Vec3 end = getInnerEndpoint(linkedPos, linkedState);
+		if (start.distanceToSqr(end) < 1.0E-8d)
+			return;
+
+		AABB queryBox = new AABB(start, end).inflate(SHAFT_RADIUS);
+		for (Player player : level.getEntitiesOfClass(Player.class, queryBox)) {
+			if (player.isSpectator())
+				continue;
+			AABB inflated = player.getBoundingBox().inflate(SHAFT_RADIUS);
+			if (segmentIntersectsBox(start, end, inflated))
+				player.makeStuckInBlock(state, SHAFT_STUCK_MULTIPLIER);
+		}
+	}
+
+	private static boolean isPrimaryEndpoint(BlockPos first, BlockPos second) {
+		if (first.getX() != second.getX())
+			return first.getX() < second.getX();
+		if (first.getY() != second.getY())
+			return first.getY() < second.getY();
+		return first.getZ() < second.getZ();
+	}
+
+	private static boolean segmentIntersectsBox(Vec3 from, Vec3 to, AABB box) {
+		if (box.contains(from) || box.contains(to))
+			return true;
+
+		double dx = to.x - from.x;
+		double dy = to.y - from.y;
+		double dz = to.z - from.z;
+
+		double[] range = { 0d, 1d };
+		if (!clipSlab(from.x, dx, box.minX, box.maxX, range))
+			return false;
+		if (!clipSlab(from.y, dy, box.minY, box.maxY, range))
+			return false;
+		return clipSlab(from.z, dz, box.minZ, box.maxZ, range);
+	}
+
+	private static boolean clipSlab(double origin, double direction, double min, double max, double[] range) {
+		if (Math.abs(direction) < 1.0E-8d)
+			return origin >= min && origin <= max;
+		double t1 = (min - origin) / direction;
+		double t2 = (max - origin) / direction;
+		if (t1 > t2) {
+			double tmp = t1;
+			t1 = t2;
+			t2 = tmp;
+		}
+		range[0] = Math.max(range[0], t1);
+		range[1] = Math.min(range[1], t2);
+		return range[0] <= range[1];
 	}
 
 	@Override
