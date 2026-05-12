@@ -60,6 +60,9 @@ public class CBItems {
 		ITEMS.register("ghast_hot_air_balloon_assembly_station",
 			() -> new BlockItem(CBBlocks.GHAST_HOT_AIR_BALLOON_ASSEMBLY_STATION.get(), new Item.Properties()));
 
+	public static final RegistryObject<Item> GHAST_HELM = ITEMS.register("ghast_helm",
+		() -> new BlockItem(CBBlocks.GHAST_HELM.get(), new Item.Properties()));
+
 	public static final RegistryObject<Item> CREEPER_BLAST_CHAMBER = ITEMS.register("creeper_blast_chamber",
 		() -> new BlockItem(CBBlocks.CREEPER_BLAST_CHAMBER.get(), new Item.Properties()));
 

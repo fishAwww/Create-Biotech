@@ -5,6 +5,7 @@ import com.nobodiiiii.createbiotech.content.evokertank.EvokerTankBlock;
 import com.nobodiiiii.createbiotech.content.explosionproofitemvault.ExplosionProofItemVaultBlock;
 import com.nobodiiiii.createbiotech.content.fixedcarrotfishingrod.FixedCarrotFishingRodBlock;
 import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHotAirBalloonAssemblyStationBlock;
+import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHelmBlock;
 import com.nobodiiiii.createbiotech.content.magmabelt.MagmaBeltBlock;
 import com.nobodiiiii.createbiotech.content.powerbelt.PowerBeltBlock;
 import com.nobodiiiii.createbiotech.content.slimebelt.SlimeBeltBlock;
@@ -80,6 +81,13 @@ public class CBBlocks {
 				.strength(2.0f)
 				.mapColor(MapColor.WOOD)
 				.noOcclusion()));
+
+	public static final RegistryObject<GhastHelmBlock> GHAST_HELM = BLOCKS.register("ghast_helm",
+		() -> new GhastHelmBlock(Block.Properties.of()
+			.sound(SoundType.WOOD)
+			.strength(2.0f)
+			.mapColor(MapColor.WOOD)
+			.noOcclusion()));
 
 	public static final RegistryObject<SchrodingersCatBlock> SCHRODINGERS_CAT =
 		BLOCKS.register("schrodingers_cat",

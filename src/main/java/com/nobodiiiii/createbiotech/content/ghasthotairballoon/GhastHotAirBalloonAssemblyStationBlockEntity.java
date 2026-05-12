@@ -149,7 +149,7 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 		contraption.removeBlocksFromWorld(level, BlockPos.ZERO);
 
 		ghast.stopRiding();
-		ghast.setNoAi(false);
+		ghast.setNoAi(true);
 		ghast.setPersistenceRequired();
 		seat.discard();
 

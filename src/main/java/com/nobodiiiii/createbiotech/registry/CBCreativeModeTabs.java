@@ -33,6 +33,7 @@ public class CBCreativeModeTabs {
 				output.accept(CBItems.SCHRODINGERS_CAT.get());
 				output.accept(CBItems.FIXED_CARROT_FISHING_ROD.get());
 				output.accept(CBItems.GHAST_HOT_AIR_BALLOON_ASSEMBLY_STATION.get());
+				output.accept(CBItems.GHAST_HELM.get());
 				output.accept(CBItems.CREEPER_BLAST_CHAMBER.get());
 				output.accept(CBItems.EXPLOSION_PROOF_CASING.get());
 				output.accept(CBItems.EXPLOSION_PROOF_ITEM_VAULT.get());
