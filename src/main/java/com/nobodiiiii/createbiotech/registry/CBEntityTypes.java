@@ -2,6 +2,7 @@ package com.nobodiiiii.createbiotech.registry;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
 import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHotAirBalloonEntity;
+import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHotAirBalloonSeatEntity;
 
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -25,6 +26,17 @@ public class CBEntityTypes {
 				.fireImmune();
 			GhastHotAirBalloonEntity.build(builder);
 			return builder.build("ghast_hot_air_balloon");
+		});
+
+	public static final RegistryObject<EntityType<GhastHotAirBalloonSeatEntity>> GHAST_HOT_AIR_BALLOON_SEAT =
+		ENTITY_TYPES.register("ghast_hot_air_balloon_seat", () -> {
+			EntityType.Builder<GhastHotAirBalloonSeatEntity> builder = EntityType.Builder
+				.<GhastHotAirBalloonSeatEntity>of(GhastHotAirBalloonSeatEntity::new, MobCategory.MISC)
+				.setTrackingRange(5)
+				.setUpdateInterval(Integer.MAX_VALUE)
+				.setShouldReceiveVelocityUpdates(false);
+			GhastHotAirBalloonSeatEntity.build(builder);
+			return builder.build("ghast_hot_air_balloon_seat");
 		});
 
 	private CBEntityTypes() {}

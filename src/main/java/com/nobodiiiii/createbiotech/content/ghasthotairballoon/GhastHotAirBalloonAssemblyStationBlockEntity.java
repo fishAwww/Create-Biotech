@@ -1,5 +1,7 @@
 package com.nobodiiiii.createbiotech.content.ghasthotairballoon;
 
+import java.util.List;
+
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 import com.simibubi.create.api.contraption.BlockMovementChecks;
 import com.simibubi.create.content.contraptions.AssemblyException;
@@ -12,16 +14,18 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 
 public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 
 	public static final float SPEED = 0.5f; // 256 RPM equivalent (= 256 / 512 blocks/tick)
+	private static final int ATTRACT_PERIOD_TICKS = 20;
 
 	private boolean wasPowered;
 	private boolean queuedAssemble;
@@ -43,6 +47,9 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 
 		if (level.isClientSide)
 			return;
+
+		if (level.getGameTime() % ATTRACT_PERIOD_TICKS == 0)
+			be.tickAutoAttract(level, pos, state);
 
 		if (be.queuedAssemble) {
 			be.queuedAssemble = false;
@@ -80,6 +87,17 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 		}
 	}
 
+	private void tickAutoAttract(Level level, BlockPos pos, BlockState state) {
+		if (GhastHotAirBalloonAssemblyStationBlock.isSeatOccupied(level, pos))
+			return;
+		for (Ghast ghast : GhastHotAirBalloonAssemblyStationBlock.findGhastsToSeat(level, pos)) {
+			if (!GhastHotAirBalloonAssemblyStationBlock.canBePickedUp(ghast))
+				continue;
+			GhastHotAirBalloonAssemblyStationBlock.sitDown(level, pos, state, ghast);
+			return;
+		}
+	}
+
 	public void onNeighborSignalChanged(boolean powered) {
 		if (level == null || level.isClientSide)
 			return;
@@ -106,7 +124,19 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 		if (level == null || level.isClientSide)
 			return;
 
-		GhastHotAirBalloonContraption contraption = new GhastHotAirBalloonContraption(ropeLength);
+		BlockPos seatPos = worldPosition.above();
+		AABB seatBox = new AABB(seatPos).inflate(0.1);
+		List<GhastHotAirBalloonSeatEntity> seats =
+			level.getEntitiesOfClass(GhastHotAirBalloonSeatEntity.class, seatBox);
+		if (seats.isEmpty())
+			return;
+		GhastHotAirBalloonSeatEntity seat = seats.get(0);
+		List<Entity> passengers = seat.getPassengers();
+		if (passengers.isEmpty() || !(passengers.get(0) instanceof Ghast ghast))
+			return;
+
+		int initialOffset = ropeLength + 1;
+		GhastHotAirBalloonContraption contraption = new GhastHotAirBalloonContraption(initialOffset);
 		try {
 			if (!contraption.assemble(level, anchorPos))
 				return;
@@ -118,16 +148,10 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 
 		contraption.removeBlocksFromWorld(level, BlockPos.ZERO);
 
-		Ghast ghast = EntityType.GHAST.create(level);
-		if (ghast == null)
-			return;
-		double gx = worldPosition.getX() + 0.5;
-		double gy = worldPosition.getY();
-		double gz = worldPosition.getZ() + 0.5;
-		ghast.moveTo(gx, gy, gz, 0f, 0f);
+		ghast.stopRiding();
+		ghast.setNoAi(false);
 		ghast.setPersistenceRequired();
-		if (!level.addFreshEntity(ghast))
-			return;
+		seat.discard();
 
 		GhastHotAirBalloonEntity contraptionEntity =
 			GhastHotAirBalloonEntity.create(level, contraption, Direction.fromYRot(ghast.getYRot()));
