@@ -31,7 +31,10 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 	private static final float TURN_ACCELERATION = 1.0f;
 	private static final float TURN_DRAG = 0.85f;
 	private static final float MAX_TURN_SPEED = 6.0f;
-	private static final float MAX_CONTRAPTION_YAW_STEP = 8.0f;
+	private static final float MAX_CONTRAPTION_YAW_STEP = MAX_TURN_SPEED;
+	private static final double STATIC_TURN_SPEED_THRESHOLD = 0.01d;
+	private static final float STATIC_TURN_YAW_THRESHOLD = 0.5f;
+	private static final float STATIC_TURN_VISUAL_YAW_STEP = 4.0f;
 	private static final double MOTION_EPSILON = 1.0E-4d;
 	private static final int INPUT_TIMEOUT_TICKS = 8;
 
@@ -74,17 +77,18 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 
 	@Override
 	public void tick() {
+		Ghast ghast = getVehicle() instanceof Ghast g && g.isAlive() ? g : null;
+		if (!level().isClientSide && ghast != null) {
+			ghast.setNoAi(true);
+			CapturedEntityBoxHelper.markAiDisabledByMod(ghast);
+			tickInputTimeout();
+			applyControlledMovement(ghast);
+		}
+
 		super.tick();
 
-		if (level().isClientSide)
-			return;
-		if (!(getVehicle() instanceof Ghast ghast) || !ghast.isAlive())
-			return;
-
-		ghast.setNoAi(true);
-		CapturedEntityBoxHelper.markAiDisabledByMod(ghast);
-		tickInputTimeout();
-		applyControlledMovement(ghast);
+		if (ghast != null)
+			syncVisualYawWhileTurningInPlace(ghast, ghast.getDeltaMovement());
 	}
 
 	@Override
@@ -202,6 +206,38 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 		ghast.move(MoverType.SELF, movement);
 		ghast.hasImpulse = true;
 		ghast.hurtMarked = true;
+	}
+
+	private void syncVisualYawWhileTurningInPlace(Ghast ghast, Vec3 movement) {
+		if (movement.horizontalDistanceSqr() > STATIC_TURN_SPEED_THRESHOLD * STATIC_TURN_SPEED_THRESHOLD)
+			return;
+		float yaw = ghast.getYRot();
+		boolean rotating = Math.abs(deltaRotation) >= STATIC_TURN_YAW_THRESHOLD
+			|| inputLeft || inputRight
+			|| Math.abs(AngleHelper.getShortestAngleDiff(ghast.yBodyRot, yaw)) >= STATIC_TURN_YAW_THRESHOLD;
+		if (!rotating)
+			return;
+
+		if (level().isClientSide) {
+			float bodyYaw = approachAngle(ghast.yBodyRot, yaw, STATIC_TURN_VISUAL_YAW_STEP);
+			float headYaw = approachAngle(ghast.yHeadRot, yaw, STATIC_TURN_VISUAL_YAW_STEP);
+			ghast.yBodyRotO = ghast.yBodyRot;
+			ghast.yHeadRotO = ghast.yHeadRot;
+			ghast.setYBodyRot(bodyYaw);
+			ghast.setYHeadRot(headYaw);
+			return;
+		}
+
+		ghast.setYBodyRot(yaw);
+		ghast.setYHeadRot(yaw);
+		ghast.yBodyRotO = yaw;
+		ghast.yHeadRotO = yaw;
+	}
+
+	private static float approachAngle(float current, float target, float maxStep) {
+		float diff = AngleHelper.getShortestAngleDiff(current, target);
+		diff = Mth.clamp(diff, -maxStep, maxStep);
+		return AngleHelper.wrapAngle180(current + diff);
 	}
 
 	private static void applyYaw(Ghast ghast, float yaw) {

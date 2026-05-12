@@ -22,6 +22,7 @@ import com.nobodiiiii.createbiotech.content.slimebelt.SlimeBeltHelper;
 import com.nobodiiiii.createbiotech.content.slimebelt.SlimeBeltRenderer;
 import com.nobodiiiii.createbiotech.content.slimebelt.SlimeBeltSpriteShifts;
 import com.nobodiiiii.createbiotech.content.universaljoint.UniversalJointRenderer;
+import com.nobodiiiii.createbiotech.foundation.ponder.CreateBiotechPonderPlugin;
 import com.nobodiiiii.createbiotech.registry.CBBlocks;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 import com.nobodiiiii.createbiotech.registry.CBEntityTypes;
@@ -37,6 +38,8 @@ import com.simibubi.create.foundation.block.connected.CTModel;
 import com.simibubi.create.foundation.block.connected.SimpleCTBehaviour;
 
 import dev.engine_room.flywheel.lib.visualization.SimpleEntityVisualizer;
+
+import net.createmod.ponder.foundation.PonderIndex;
 
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
@@ -99,6 +102,7 @@ public class CreateBiotechClient {
 	@SubscribeEvent
 	public static void onClientSetup(FMLClientSetupEvent event) {
 		event.enqueueWork(() -> {
+			PonderIndex.addPlugin(new CreateBiotechPonderPlugin());
 			SimpleEntityVisualizer.<GhastHotAirBalloonEntity>builder(CBEntityTypes.GHAST_HOT_AIR_BALLOON.get())
 				.factory(ContraptionVisual::new)
 				.apply();
