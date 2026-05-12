@@ -2,6 +2,7 @@ package com.nobodiiiii.createbiotech.content.ghasthotairballoon;
 
 import java.util.List;
 
+import com.nobodiiiii.createbiotech.content.cardboardbox.CapturedEntityBoxHelper;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 import com.simibubi.create.api.contraption.BlockMovementChecks;
 import com.simibubi.create.content.contraptions.AssemblyException;
@@ -150,6 +151,7 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 
 		ghast.stopRiding();
 		ghast.setNoAi(true);
+		CapturedEntityBoxHelper.markAiDisabledByMod(ghast);
 		ghast.setPersistenceRequired();
 		seat.discard();
 

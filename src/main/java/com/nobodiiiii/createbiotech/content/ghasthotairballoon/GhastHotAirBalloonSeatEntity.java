@@ -1,5 +1,6 @@
 package com.nobodiiiii.createbiotech.content.ghasthotairballoon;
 
+import com.nobodiiiii.createbiotech.content.cardboardbox.CapturedEntityBoxHelper;
 import com.nobodiiiii.createbiotech.registry.CBBlocks;
 import com.nobodiiiii.createbiotech.registry.CBEntityTypes;
 
@@ -77,8 +78,10 @@ public class GhastHotAirBalloonSeatEntity extends Entity {
 	@Override
 	protected void removePassenger(Entity entity) {
 		super.removePassenger(entity);
-		if (entity instanceof Ghast ghast)
+		if (entity instanceof Ghast ghast) {
 			ghast.setNoAi(false);
+			CapturedEntityBoxHelper.unmarkAiDisabledByMod(ghast);
+		}
 	}
 
 	@Override

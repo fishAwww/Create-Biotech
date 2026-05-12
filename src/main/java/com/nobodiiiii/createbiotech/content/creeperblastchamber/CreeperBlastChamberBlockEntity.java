@@ -1796,6 +1796,7 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 			creeper.getYRot(),
 			creeper.getXRot());
 		creeper.setNoAi(true);
+		CapturedEntityBoxHelper.markAiDisabledByMod(creeper);
 		creeper.setPersistenceRequired();
 		creeper.setDeltaMovement(Vec3.ZERO);
 		creeper.fallDistance = 0;
@@ -1856,6 +1857,7 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 	private void releaseManagedCreeper(Creeper creeper) {
 		clearMarkedCreeperData(creeper);
 		creeper.setNoAi(false);
+		CapturedEntityBoxHelper.unmarkAiDisabledByMod(creeper);
 		creeper.setInvisible(false);
 		creeper.setDeltaMovement(Vec3.ZERO);
 		creeper.fallDistance = 0;

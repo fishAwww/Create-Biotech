@@ -3,6 +3,8 @@ package com.nobodiiiii.createbiotech.content.cardboardbox;
 import java.util.List;
 import java.util.function.Function;
 
+import com.nobodiiiii.createbiotech.CreateBiotech;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -22,8 +24,46 @@ public class CapturedEntityBoxHelper {
 	private static final String CAPTURED_ENTITY_TAG = "CapturedEntity";
 	private static final String CAPTURED_ENTITY_DESC_ID_TAG = "CapturedEntityDescId";
 	private static final String CAPTURED_ENTITY_HEALTH_TAG = "CapturedEntityHealth";
+	private static final String DATA_ROOT = CreateBiotech.MOD_ID;
+	private static final String AI_DISABLED_BY_MOD_TAG = "AiDisabledByMod";
+	private static final String NO_AI_TAG = "NoAI";
+	private static final String FORGE_DATA_TAG = "ForgeData";
 
 	private CapturedEntityBoxHelper() {}
+
+	public static void markAiDisabledByMod(Entity entity) {
+		if (entity == null)
+			return;
+		CompoundTag persistentData = entity.getPersistentData();
+		CompoundTag data = persistentData.contains(DATA_ROOT, Tag.TAG_COMPOUND)
+			? persistentData.getCompound(DATA_ROOT) : new CompoundTag();
+		data.putBoolean(AI_DISABLED_BY_MOD_TAG, true);
+		persistentData.put(DATA_ROOT, data);
+	}
+
+	public static void unmarkAiDisabledByMod(Entity entity) {
+		if (entity == null)
+			return;
+		CompoundTag persistentData = entity.getPersistentData();
+		if (!persistentData.contains(DATA_ROOT, Tag.TAG_COMPOUND))
+			return;
+		CompoundTag data = persistentData.getCompound(DATA_ROOT);
+		data.remove(AI_DISABLED_BY_MOD_TAG);
+		if (data.isEmpty())
+			persistentData.remove(DATA_ROOT);
+		else
+			persistentData.put(DATA_ROOT, data);
+	}
+
+	public static boolean isAiDisabledByMod(Entity entity) {
+		if (entity == null)
+			return false;
+		CompoundTag persistentData = entity.getPersistentData();
+		if (!persistentData.contains(DATA_ROOT, Tag.TAG_COMPOUND))
+			return false;
+		return persistentData.getCompound(DATA_ROOT)
+			.getBoolean(AI_DISABLED_BY_MOD_TAG);
+	}
 
 	public static void appendHoverText(ItemStack stack, List<Component> tooltipComponents, String filledTranslationKey) {
 		CompoundTag tag = stack.getTag();
@@ -49,12 +89,35 @@ public class CapturedEntityBoxHelper {
 			return false;
 
 		entityData.putString("id", entityId.toString());
+		restoreAiInSavedEntityData(entityData);
 
 		CompoundTag stackTag = stack.getOrCreateTag();
 		stackTag.put(CAPTURED_ENTITY_TAG, entityData);
 		stackTag.putString(CAPTURED_ENTITY_DESC_ID_TAG, target.getType().getDescriptionId());
 		stackTag.putFloat(CAPTURED_ENTITY_HEALTH_TAG, target.getHealth());
 		return true;
+	}
+
+	private static void restoreAiInSavedEntityData(CompoundTag entityData) {
+		if (!entityData.contains(FORGE_DATA_TAG, Tag.TAG_COMPOUND))
+			return;
+		CompoundTag forgeData = entityData.getCompound(FORGE_DATA_TAG);
+		if (!forgeData.contains(DATA_ROOT, Tag.TAG_COMPOUND))
+			return;
+		CompoundTag modData = forgeData.getCompound(DATA_ROOT);
+		if (!modData.getBoolean(AI_DISABLED_BY_MOD_TAG))
+			return;
+
+		entityData.remove(NO_AI_TAG);
+		modData.remove(AI_DISABLED_BY_MOD_TAG);
+		if (modData.isEmpty())
+			forgeData.remove(DATA_ROOT);
+		else
+			forgeData.put(DATA_ROOT, modData);
+		if (forgeData.isEmpty())
+			entityData.remove(FORGE_DATA_TAG);
+		else
+			entityData.put(FORGE_DATA_TAG, forgeData);
 	}
 
 	public static boolean releaseCapturedEntity(UseOnContext context) {

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
+import com.nobodiiiii.createbiotech.content.cardboardbox.CapturedEntityBoxHelper;
 import com.nobodiiiii.createbiotech.content.slimebelt.SlimeBeltHelper;
 import com.nobodiiiii.createbiotech.content.slimebelt.SlimeBeltHelper.FunnelSupport;
 import com.nobodiiiii.createbiotech.registry.CBItems;
@@ -326,6 +327,7 @@ public class BasinEntityProcessing {
 			return false;
 
 		slime.setNoAi(true);
+		CapturedEntityBoxHelper.markAiDisabledByMod(slime);
 		slime.setNoGravity(false);
 		slime.setJumping(false);
 		Vec3 motion = slime.getDeltaMovement();
@@ -346,6 +348,7 @@ public class BasinEntityProcessing {
 
 		BlockPos basinPos = data.contains(BASIN_POS_TAG) ? BlockPos.of(data.getLong(BASIN_POS_TAG)) : null;
 		slime.setNoAi(data.getBoolean(PREVIOUS_NO_AI_TAG));
+		CapturedEntityBoxHelper.unmarkAiDisabledByMod(slime);
 		slime.setNoGravity(data.getBoolean(PREVIOUS_NO_GRAVITY_TAG));
 		data.remove(CAPTURED_TAG);
 		data.remove(BASIN_POS_TAG);

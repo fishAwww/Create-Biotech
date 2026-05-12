@@ -2,6 +2,7 @@ package com.nobodiiiii.createbiotech.content.ghasthotairballoon;
 
 import java.util.List;
 
+import com.nobodiiiii.createbiotech.content.cardboardbox.CapturedEntityBoxHelper;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 
 import net.minecraft.core.BlockPos;
@@ -128,6 +129,7 @@ public class GhastHotAirBalloonAssemblyStationBlock extends BaseEntityBlock {
 		ghast.setYBodyRot(yaw);
 		ghast.setYHeadRot(yaw);
 		ghast.setNoAi(true);
+		CapturedEntityBoxHelper.markAiDisabledByMod(ghast);
 		ghast.setPersistenceRequired();
 		ghast.setDeltaMovement(0, 0, 0);
 		GhastHotAirBalloonSeatEntity seat = new GhastHotAirBalloonSeatEntity(world, stationPos);

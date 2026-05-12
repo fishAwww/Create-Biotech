@@ -2,6 +2,7 @@ package com.nobodiiiii.createbiotech.content.ghasthotairballoon;
 
 import java.util.Collection;
 
+import com.nobodiiiii.createbiotech.content.cardboardbox.CapturedEntityBoxHelper;
 import com.nobodiiiii.createbiotech.registry.CBEntityTypes;
 import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
 
@@ -79,6 +80,7 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 			return;
 
 		ghast.setNoAi(true);
+		CapturedEntityBoxHelper.markAiDisabledByMod(ghast);
 		tickInputTimeout();
 		applyControlledMovement(ghast);
 	}
@@ -108,6 +110,7 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 			return false;
 
 		ghast.setNoAi(true);
+		CapturedEntityBoxHelper.markAiDisabledByMod(ghast);
 
 		inputForward = heldControls.contains(0);
 		inputBackward = heldControls.contains(1);
