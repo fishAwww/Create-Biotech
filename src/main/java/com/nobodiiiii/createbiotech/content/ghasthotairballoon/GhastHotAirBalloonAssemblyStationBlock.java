@@ -22,40 +22,36 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.AABB;
 
 public class GhastHotAirBalloonAssemblyStationBlock extends BaseEntityBlock {
 
-	public static final Property<Direction.Axis> HORIZONTAL_AXIS = BlockStateProperties.HORIZONTAL_AXIS;
-
+	public static final DirectionProperty HORIZONTAL_FACING = BlockStateProperties.HORIZONTAL_FACING;
 	public GhastHotAirBalloonAssemblyStationBlock(Properties properties) {
 		super(properties);
-		registerDefaultState(defaultBlockState().setValue(HORIZONTAL_AXIS, Direction.Axis.Z));
+		registerDefaultState(defaultBlockState().setValue(HORIZONTAL_FACING, Direction.NORTH));
 	}
 
 	@Override
 	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-		builder.add(HORIZONTAL_AXIS);
+		builder.add(HORIZONTAL_FACING);
 		super.createBlockStateDefinition(builder);
 	}
 
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
-		return defaultBlockState().setValue(HORIZONTAL_AXIS,
-			context.getHorizontalDirection().getClockWise().getAxis());
+		return defaultBlockState().setValue(HORIZONTAL_FACING, context.getHorizontalDirection().getClockWise());
 	}
 
 	@Override
 	public BlockState rotate(BlockState state, Rotation rot) {
-		Direction.Axis axis = state.getValue(HORIZONTAL_AXIS);
-		return state.setValue(HORIZONTAL_AXIS,
-			rot.rotate(Direction.get(Direction.AxisDirection.POSITIVE, axis)).getAxis());
+		return state.setValue(HORIZONTAL_FACING, rot.rotate(state.getValue(HORIZONTAL_FACING)));
 	}
 
 	@Override
 	public BlockState mirror(BlockState state, Mirror mirror) {
-		return state;
+		return state.rotate(mirror.getRotation(state.getValue(HORIZONTAL_FACING)));
 	}
 
 	@Override
@@ -141,8 +137,7 @@ public class GhastHotAirBalloonAssemblyStationBlock extends BaseEntityBlock {
 	}
 
 	private static float getFacingYaw(BlockState state) {
-		Direction.Axis axis = state.getValue(HORIZONTAL_AXIS);
-		return axis == Direction.Axis.Z ? -90f : 0f;
+		return state.getValue(HORIZONTAL_FACING).toYRot();
 	}
 
 	public static List<Ghast> findGhastsToSeat(Level world, BlockPos stationPos) {

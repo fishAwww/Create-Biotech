@@ -1,11 +1,19 @@
 {
   "variants": {
-    "axis=x": {
+    "facing=north": {
+      "model": "create:block/rope_pulley/block"
+    },
+    "facing=east": {
       "model": "create:block/rope_pulley/block",
       "y": 90
     },
-    "axis=z": {
-      "model": "create:block/rope_pulley/block"
+    "facing=south": {
+      "model": "create:block/rope_pulley/block",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "create:block/rope_pulley/block",
+      "y": 270
     }
   }
 }

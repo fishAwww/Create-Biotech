@@ -35,10 +35,9 @@ public class GhastHotAirBalloonAssemblyStationRenderer
 		float offset = be.getInterpolatedOffset(partialTicks);
 		boolean running = be.isRunning();
 
-		Direction.Axis axis = blockState.hasProperty(GhastHotAirBalloonAssemblyStationBlock.HORIZONTAL_AXIS)
-			? blockState.getValue(GhastHotAirBalloonAssemblyStationBlock.HORIZONTAL_AXIS)
-			: Direction.Axis.Z;
-		Direction shaftFacing = Direction.get(Direction.AxisDirection.POSITIVE, axis);
+		Direction shaftFacing = blockState.hasProperty(GhastHotAirBalloonAssemblyStationBlock.HORIZONTAL_FACING)
+			? blockState.getValue(GhastHotAirBalloonAssemblyStationBlock.HORIZONTAL_FACING)
+			: Direction.NORTH;
 
 		SuperByteBuffer coil = AbstractPulleyRenderer.scrollCoil(
 			CachedBuffers.partialFacing(AllPartialModels.ROPE_COIL, blockState, shaftFacing),

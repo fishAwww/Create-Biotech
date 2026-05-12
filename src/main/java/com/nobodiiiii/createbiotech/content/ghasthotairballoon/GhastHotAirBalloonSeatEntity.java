@@ -21,6 +21,8 @@ import net.minecraftforge.network.NetworkHooks;
 
 public class GhastHotAirBalloonSeatEntity extends Entity {
 
+	public static final double GHAST_PASSENGER_Y_OFFSET = 7 / 16d;
+
 	public GhastHotAirBalloonSeatEntity(EntityType<?> type, Level level) {
 		super(type, level);
 		noPhysics = true;
@@ -50,7 +52,7 @@ public class GhastHotAirBalloonSeatEntity extends Entity {
 	protected void positionRider(Entity passenger, Entity.MoveFunction callback) {
 		if (!this.hasPassenger(passenger))
 			return;
-		callback.accept(passenger, this.getX(), this.getY(), this.getZ());
+		callback.accept(passenger, this.getX(), this.getY() + GHAST_PASSENGER_Y_OFFSET, this.getZ());
 	}
 
 	@Override
