@@ -8,6 +8,7 @@ import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
 import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
@@ -18,9 +19,27 @@ import net.minecraft.world.phys.Vec3;
 
 public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 
-	private static final double CONTROL_SPEED = 0.35d;
-	private static final double VERTICAL_SPEED = 0.25d;
-	private static final float TURN_SPEED = 6.0f;
+	private static final double FORWARD_ACCELERATION = 0.04d;
+	private static final double BACKWARD_ACCELERATION = 0.02d;
+	private static final double VERTICAL_ACCELERATION = 0.03d;
+	private static final double HORIZONTAL_DRAG = 0.9d;
+	private static final double VERTICAL_DRAG = 0.85d;
+	private static final double MAX_HORIZONTAL_SPEED = 0.35d;
+	private static final double MAX_VERTICAL_SPEED = 0.25d;
+	private static final float TURN_ACCELERATION = 1.0f;
+	private static final float TURN_DRAG = 0.85f;
+	private static final float MAX_TURN_SPEED = 6.0f;
+	private static final double MOTION_EPSILON = 1.0E-4d;
+	private static final int INPUT_TIMEOUT_TICKS = 8;
+
+	private float deltaRotation;
+	private int inputTimeout;
+	private boolean inputForward;
+	private boolean inputBackward;
+	private boolean inputLeft;
+	private boolean inputRight;
+	private boolean inputUp;
+	private boolean inputDown;
 
 	public GhastHotAirBalloonEntity(EntityType<?> type, Level level) {
 		super(type, level);
@@ -51,6 +70,20 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 	}
 
 	@Override
+	public void tick() {
+		super.tick();
+
+		if (level().isClientSide)
+			return;
+		if (!(getVehicle() instanceof Ghast ghast) || !ghast.isAlive())
+			return;
+
+		ghast.setNoAi(true);
+		tickInputTimeout();
+		applyControlledMovement(ghast);
+	}
+
+	@Override
 	public boolean startControlling(BlockPos controlsLocalPos, Player player) {
 		if (player == null || player.isSpectator())
 			return false;
@@ -58,6 +91,8 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 			return false;
 		if (!toGlobalVector(VecHelper.getCenterOf(controlsLocalPos), 1).closerThan(player.position(), 8))
 			return false;
+		clearInputs();
+		inputTimeout = 0;
 		return true;
 	}
 
@@ -74,40 +109,99 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 
 		ghast.setNoAi(true);
 
-		int forward = heldControls.contains(0) ? 1 : 0;
-		int backward = heldControls.contains(1) ? 1 : 0;
-		int left = heldControls.contains(2) ? 1 : 0;
-		int right = heldControls.contains(3) ? 1 : 0;
-		int up = heldControls.contains(4) ? 1 : 0;
-		int down = heldControls.contains(5) ? 1 : 0;
-
-		float yaw = ghast.getYRot() + (right - left) * TURN_SPEED;
-		ghast.setYRot(yaw);
-		ghast.setYBodyRot(yaw);
-		ghast.setYHeadRot(yaw);
-		ghast.yRotO = yaw;
-		ghast.yBodyRotO = yaw;
-		ghast.yHeadRotO = yaw;
-
-		double forwardAmount = forward - backward;
-		Vec3 forwardVec = Vec3.directionFromRotation(0, yaw).scale(forwardAmount * CONTROL_SPEED);
-		double verticalAmount = (up - down) * VERTICAL_SPEED;
-		Vec3 movement = new Vec3(forwardVec.x, verticalAmount, forwardVec.z);
-
-		ghast.move(MoverType.SELF, movement);
-		ghast.setDeltaMovement(movement);
-		ghast.hasImpulse = true;
-		ghast.hurtMarked = true;
+		inputForward = heldControls.contains(0);
+		inputBackward = heldControls.contains(1);
+		inputLeft = heldControls.contains(2);
+		inputRight = heldControls.contains(3);
+		inputUp = heldControls.contains(4);
+		inputDown = heldControls.contains(5);
+		inputTimeout = INPUT_TIMEOUT_TICKS;
 		return true;
 	}
 
 	@Override
 	public void stopControlling(BlockPos controlsLocalPos) {
 		super.stopControlling(controlsLocalPos);
-		if (getVehicle() instanceof Ghast ghast && ghast.isAlive()) {
-			ghast.setDeltaMovement(Vec3.ZERO);
-			ghast.hasImpulse = true;
+		clearInputs();
+		inputTimeout = 0;
+	}
+
+	private void tickInputTimeout() {
+		if (inputTimeout > 0) {
+			inputTimeout--;
+			return;
 		}
+		clearInputs();
+	}
+
+	private void clearInputs() {
+		inputForward = false;
+		inputBackward = false;
+		inputLeft = false;
+		inputRight = false;
+		inputUp = false;
+		inputDown = false;
+	}
+
+	private void applyControlledMovement(Ghast ghast) {
+		Vec3 movement = ghast.getDeltaMovement().multiply(HORIZONTAL_DRAG, VERTICAL_DRAG, HORIZONTAL_DRAG);
+
+		if (inputLeft)
+			deltaRotation -= TURN_ACCELERATION;
+		if (inputRight)
+			deltaRotation += TURN_ACCELERATION;
+
+		deltaRotation = Mth.clamp(deltaRotation, -MAX_TURN_SPEED, MAX_TURN_SPEED);
+		float yaw = ghast.getYRot() + deltaRotation;
+		applyYaw(ghast, yaw);
+		deltaRotation *= TURN_DRAG;
+
+		double thrust = 0;
+		if (inputForward)
+			thrust += FORWARD_ACCELERATION;
+		if (inputBackward)
+			thrust -= BACKWARD_ACCELERATION;
+		if (thrust != 0)
+			movement = movement.add(Vec3.directionFromRotation(0, yaw).scale(thrust));
+
+		double verticalThrust = 0;
+		if (inputUp)
+			verticalThrust += VERTICAL_ACCELERATION;
+		if (inputDown)
+			verticalThrust -= VERTICAL_ACCELERATION;
+		if (verticalThrust != 0)
+			movement = movement.add(0, verticalThrust, 0);
+
+		movement = clampMovement(movement);
+		ghast.setDeltaMovement(movement);
+		ghast.move(MoverType.SELF, movement);
+		ghast.hasImpulse = true;
+		ghast.hurtMarked = true;
+	}
+
+	private static void applyYaw(Ghast ghast, float yaw) {
+		ghast.setYRot(yaw);
+		ghast.setYBodyRot(yaw);
+		ghast.setYHeadRot(yaw);
+		ghast.yRotO = yaw;
+		ghast.yBodyRotO = yaw;
+		ghast.yHeadRotO = yaw;
+	}
+
+	private static Vec3 clampMovement(Vec3 movement) {
+		double horizontalSpeed = movement.horizontalDistance();
+		if (horizontalSpeed > MAX_HORIZONTAL_SPEED) {
+			double scale = MAX_HORIZONTAL_SPEED / horizontalSpeed;
+			movement = new Vec3(movement.x * scale, movement.y, movement.z * scale);
+		}
+
+		double verticalSpeed = Mth.clamp(movement.y, -MAX_VERTICAL_SPEED, MAX_VERTICAL_SPEED);
+		movement = new Vec3(movement.x, verticalSpeed, movement.z);
+
+		double x = Math.abs(movement.x) < MOTION_EPSILON ? 0 : movement.x;
+		double y = Math.abs(movement.y) < MOTION_EPSILON ? 0 : movement.y;
+		double z = Math.abs(movement.z) < MOTION_EPSILON ? 0 : movement.z;
+		return new Vec3(x, y, z);
 	}
 
 	public static EntityType.Builder<?> build(EntityType.Builder<?> builder) {
