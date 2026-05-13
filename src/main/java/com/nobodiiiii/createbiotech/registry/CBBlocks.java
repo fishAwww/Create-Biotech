@@ -1,6 +1,7 @@
 package com.nobodiiiii.createbiotech.registry;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
+import com.nobodiiiii.createbiotech.content.aircushion.AirCushionBlock;
 import com.nobodiiiii.createbiotech.content.evokertank.EvokerTankBlock;
 import com.nobodiiiii.createbiotech.content.explosionproofitemvault.ExplosionProofItemVaultBlock;
 import com.nobodiiiii.createbiotech.content.fixedcarrotfishingrod.FixedCarrotFishingRodBlock;
@@ -137,6 +138,14 @@ public class CBBlocks {
 	public static final RegistryObject<ConnectedGlassBlock> BLAST_PROOF_FRAMED_GLASS =
 		BLOCKS.register("blast_proof_framed_glass",
 			() -> new ConnectedGlassBlock(blastProofGlassProperties()));
+
+	public static final RegistryObject<AirCushionBlock> AIR_CUSHION =
+		BLOCKS.register("air_cushion",
+			() -> new AirCushionBlock(Block.Properties.of()
+				.sound(SoundType.WOOL)
+				.strength(0.4f)
+				.mapColor(MapColor.WOOD)
+				.noOcclusion()));
 
 	private static Block.Properties blastProofGlassProperties() {
 		return Block.Properties.copy(Blocks.GLASS)

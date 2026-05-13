@@ -81,6 +81,9 @@ public class CBItems {
 	public static final RegistryObject<Item> BLAST_PROOF_FRAMED_GLASS = ITEMS.register("blast_proof_framed_glass",
 		() -> new BlockItem(CBBlocks.BLAST_PROOF_FRAMED_GLASS.get(), new Item.Properties()));
 
+	public static final RegistryObject<Item> AIR_CUSHION = ITEMS.register("air_cushion",
+		() -> new BlockItem(CBBlocks.AIR_CUSHION.get(), new Item.Properties()));
+
 	private CBItems() {}
 
 	public static void register(IEventBus modEventBus) {
