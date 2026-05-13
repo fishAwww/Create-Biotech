@@ -156,6 +156,11 @@ public class GhastHotAirBalloonAssemblyStationBlock extends BaseEntityBlock {
 		for (GhastHotAirBalloonEntity gc : contraptions) {
 			if (!gc.isAlive())
 				continue;
+			if (world.getBlockEntity(stationPos) instanceof GhastHotAirBalloonAssemblyStationBlockEntity station) {
+				float magnetY = (float) (gc.getY() + 1.0);
+				float depth = stationPos.getY() - magnetY;
+				station.snapToDisassembleOffset(depth);
+			}
 			gc.disassemble();
 		}
 	}

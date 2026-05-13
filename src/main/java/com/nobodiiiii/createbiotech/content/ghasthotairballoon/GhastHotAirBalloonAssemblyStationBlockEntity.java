@@ -157,6 +157,27 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 			level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
 	}
 
+	public void snapToDisassembleOffset(float depth) {
+		if (level == null || level.isClientSide)
+			return;
+		int maxLength = AllConfigs.server().kinetics.maxRopeLength.get();
+		float clamped = Mth.clamp(depth, 0f, maxLength);
+		if (clamped <= 0f) {
+			extending = false;
+			retracting = false;
+			offset = 0f;
+			prevOffset = 0f;
+			sendUpdate();
+			return;
+		}
+		offset = clamped;
+		prevOffset = clamped;
+		extending = false;
+		retracting = true;
+		assemblyConsumed = false;
+		sendUpdate();
+	}
+
 	private boolean tryAssemble(BlockPos anchorPos, int ropeLength) {
 		if (level == null || level.isClientSide)
 			return false;
