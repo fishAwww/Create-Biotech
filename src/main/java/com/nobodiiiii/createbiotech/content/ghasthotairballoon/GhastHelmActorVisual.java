@@ -2,7 +2,6 @@ package com.nobodiiiii.createbiotech.content.ghasthotairballoon;
 
 import org.joml.Matrix4f;
 
-import com.simibubi.create.AllPartialModels;
 import com.simibubi.create.content.contraptions.actors.trainControls.ControlsBlock;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.contraptions.render.ActorVisual;
@@ -22,7 +21,8 @@ public class GhastHelmActorVisual extends ActorVisual {
 
 	private final TransformedInstance cover;
 	private final TransformedInstance firstLever;
-	private final TransformedInstance secondLever;
+	private final TransformedInstance middleLever;
+	private final TransformedInstance thirdLever;
 	private final Direction facing;
 
 	public GhastHelmActorVisual(VisualizationContext visualizationContext, VirtualRenderWorld simulationWorld,
@@ -33,19 +33,23 @@ public class GhastHelmActorVisual extends ActorVisual {
 		facing = state.getValue(ControlsBlock.FACING);
 
 		cover =
-			instancerProvider.instancer(InstanceTypes.TRANSFORMED, Models.partial(AllPartialModels.TRAIN_CONTROLS_COVER))
+			instancerProvider.instancer(InstanceTypes.TRANSFORMED, Models.partial(GhastHelmMovementBehaviour.GHAST_HELM_COVER))
 				.createInstance();
 		firstLever =
-			instancerProvider.instancer(InstanceTypes.TRANSFORMED, Models.partial(AllPartialModels.TRAIN_CONTROLS_LEVER))
+			instancerProvider.instancer(InstanceTypes.TRANSFORMED, Models.partial(GhastHelmMovementBehaviour.GHAST_HELM_LEVER))
 				.createInstance();
-		secondLever =
-			instancerProvider.instancer(InstanceTypes.TRANSFORMED, Models.partial(AllPartialModels.TRAIN_CONTROLS_LEVER))
+		middleLever =
+			instancerProvider.instancer(InstanceTypes.TRANSFORMED, Models.partial(GhastHelmMovementBehaviour.GHAST_HELM_LEVER))
+				.createInstance();
+		thirdLever =
+			instancerProvider.instancer(InstanceTypes.TRANSFORMED, Models.partial(GhastHelmMovementBehaviour.GHAST_HELM_LEVER))
 				.createInstance();
 
 		int blockLight = localBlockLight();
 		cover.light(blockLight, 0).setChanged();
 		firstLever.light(blockLight, 0).setChanged();
-		secondLever.light(blockLight, 0).setChanged();
+		middleLever.light(blockLight, 0).setChanged();
+		thirdLever.light(blockLight, 0).setChanged();
 	}
 
 	@Override
@@ -57,12 +61,13 @@ public class GhastHelmActorVisual extends ActorVisual {
 			float pt = AnimationTickHolder.getPartialTicks();
 			float equipAnimation = angles.equipAnimation.getValue(pt);
 			float first = angles.speed.getValue(pt);
-			float second = angles.steering.getValue(pt);
-			updateInstances(equipAnimation, first, second);
+			float middle = angles.altitude.getValue(pt);
+			float third = angles.steering.getValue(pt);
+			updateInstances(equipAnimation, first, middle, third);
 		}
 	}
 
-	private void updateInstances(float equipAnimation, float first, float second) {
+	private void updateInstances(float equipAnimation, float first, float middle, float third) {
 		float hAngle = 180 + AngleHelper.horizontalAngle(facing);
 
 		cover.setIdentityTransform()
@@ -74,7 +79,8 @@ public class GhastHelmActorVisual extends ActorVisual {
 
 		double yOffset = Mth.lerp(equipAnimation * equipAnimation, -0.15f, 0.05f);
 		updateLever(firstLever, hAngle, Mth.clamp(first * 15, -45, 45), yOffset, 0);
-		updateLever(secondLever, hAngle, Mth.clamp(second * 15, -45, 45), yOffset, 6 / 16f);
+		updateLever(middleLever, hAngle, Mth.clamp(middle * 15, -45, 45), yOffset, 3 / 16f);
+		updateLever(thirdLever, hAngle, Mth.clamp(third * 15, -45, 45), yOffset, 6 / 16f);
 	}
 
 	private void updateLever(TransformedInstance lever, float hAngle, float vAngle, double yOffset, float xOffset) {
@@ -97,6 +103,7 @@ public class GhastHelmActorVisual extends ActorVisual {
 	protected void _delete() {
 		cover.delete();
 		firstLever.delete();
-		secondLever.delete();
+		middleLever.delete();
+		thirdLever.delete();
 	}
 }

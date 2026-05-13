@@ -3,6 +3,7 @@ package com.nobodiiiii.createbiotech.content.ghasthotairballoon;
 import java.util.Collection;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.nobodiiiii.createbiotech.CreateBiotech;
 import com.simibubi.create.AllPartialModels;
 import com.simibubi.create.api.behaviour.movement.MovementBehaviour;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
@@ -15,6 +16,7 @@ import com.simibubi.create.foundation.virtualWorld.VirtualRenderWorld;
 
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import dev.engine_room.flywheel.api.visualization.VisualizationManager;
+import dev.engine_room.flywheel.lib.model.baked.PartialModel;
 import dev.engine_room.flywheel.lib.transform.TransformStack;
 import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.animation.LerpedFloat;
@@ -34,8 +36,14 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class GhastHelmMovementBehaviour implements MovementBehaviour {
 
+	static final PartialModel GHAST_HELM_COVER =
+		PartialModel.of(CreateBiotech.asResource("block/ghast_helm/train/cover"));
+	static final PartialModel GHAST_HELM_LEVER =
+		PartialModel.of(CreateBiotech.asResource("block/ghast_helm/train/lever"));
+
 	static class LeverAngles {
 		LerpedFloat steering = LerpedFloat.linear();
+		LerpedFloat altitude = LerpedFloat.linear();
 		LerpedFloat speed = LerpedFloat.linear();
 		LerpedFloat equipAnimation = LerpedFloat.linear();
 	}
@@ -57,6 +65,7 @@ public class GhastHelmMovementBehaviour implements MovementBehaviour {
 		if (!context.world.isClientSide)
 			return;
 		getAngles(context).steering.tickChaser();
+		getAngles(context).altitude.tickChaser();
 		getAngles(context).speed.tickChaser();
 		getAngles(context).equipAnimation.tickChaser();
 	}
@@ -74,7 +83,7 @@ public class GhastHelmMovementBehaviour implements MovementBehaviour {
 
 		float pt = AnimationTickHolder.getPartialTicks();
 		renderControls(context, renderWorld, matrices, buffer, angles.equipAnimation.getValue(pt),
-			angles.speed.getValue(pt), angles.steering.getValue(pt));
+			angles.speed.getValue(pt), angles.altitude.getValue(pt), angles.steering.getValue(pt));
 	}
 
 	@Override
@@ -101,6 +110,8 @@ public class GhastHelmMovementBehaviour implements MovementBehaviour {
 			Collection<Integer> pressed = ControlsHandler.currentlyPressed;
 			angles.equipAnimation.chase(1, .2f, Chaser.EXP);
 			angles.steering.chase((pressed.contains(3) ? 1 : 0) + (pressed.contains(2) ? -1 : 0), 0.2f, Chaser.EXP);
+			angles.altitude.chase((pressed.contains(4) ? 1 : 0) + (pressed.contains(5) ? -1 : 0), 0.2f,
+				Chaser.EXP);
 			float speedInput = (pressed.contains(0) ? 1 : 0) + (pressed.contains(1) ? -1 : 0);
 			angles.speed.chase(inverted ? -speedInput : speedInput, 0.2f, Chaser.EXP);
 			return;
@@ -108,17 +119,18 @@ public class GhastHelmMovementBehaviour implements MovementBehaviour {
 
 		angles.equipAnimation.chase(0, .2f, Chaser.EXP);
 		angles.steering.chase(0, 0, Chaser.EXP);
+		angles.altitude.chase(0, 0, Chaser.EXP);
 		angles.speed.chase(0, 0, Chaser.EXP);
 	}
 
 	@OnlyIn(Dist.CLIENT)
 	private static void renderControls(MovementContext context, VirtualRenderWorld renderWorld,
 		ContraptionMatrices matrices, MultiBufferSource buffer, float equipAnimation, float firstLever,
-		float secondLever) {
+		float middleLever, float thirdLever) {
 		BlockState state = context.state;
 		Direction facing = state.getValue(ControlsBlock.FACING);
 
-		SuperByteBuffer cover = CachedBuffers.partial(AllPartialModels.TRAIN_CONTROLS_COVER, state);
+		SuperByteBuffer cover = CachedBuffers.partial(GHAST_HELM_COVER, state);
 		float hAngle = 180 + AngleHelper.horizontalAngle(facing);
 		PoseStack ms = matrices.getModel();
 		cover.transform(ms)
@@ -130,11 +142,13 @@ public class GhastHelmMovementBehaviour implements MovementBehaviour {
 			.renderInto(matrices.getViewProjection(), buffer.getBuffer(net.minecraft.client.renderer.RenderType.cutoutMipped()));
 
 		double yOffset = Mth.lerp(equipAnimation * equipAnimation, -0.15f, 0.05f);
+		float[] leverValues = {firstLever, middleLever, thirdLever};
+		float[] xOffsets = {0, 3 / 16f, 6 / 16f};
 
-		for (boolean first : Iterate.trueAndFalse) {
-			float leverValue = first ? firstLever : secondLever;
+		for (int i = 0; i < leverValues.length; i++) {
+			float leverValue = leverValues[i];
 			float vAngle = Mth.clamp(leverValue * 15, -45, 45);
-			SuperByteBuffer lever = CachedBuffers.partial(AllPartialModels.TRAIN_CONTROLS_LEVER, state);
+			SuperByteBuffer lever = CachedBuffers.partial(GHAST_HELM_LEVER, state);
 			ms.pushPose();
 			TransformStack.of(ms)
 				.center()
@@ -145,7 +159,7 @@ public class GhastHelmMovementBehaviour implements MovementBehaviour {
 				.rotateXDegrees(45)
 				.uncenter()
 				.translate(0, -6 / 16f, -3 / 16f)
-				.translate(first ? 0 : 6 / 16f, 0, 0);
+				.translate(xOffsets[i], 0, 0);
 			lever.transform(ms)
 				.light(LevelRenderer.getLightColor(renderWorld, context.localPos))
 				.useLevelLight(context.world, matrices.getWorld())
