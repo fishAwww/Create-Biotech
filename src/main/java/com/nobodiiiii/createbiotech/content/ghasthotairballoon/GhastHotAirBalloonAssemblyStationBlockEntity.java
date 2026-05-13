@@ -29,9 +29,12 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 	private static final int ATTRACT_PERIOD_TICKS = 20;
 
 	private boolean wasPowered;
-	private boolean queuedAssemble;
 
-	private boolean running;
+	private boolean extending;
+	private boolean retracting;
+	private boolean assemblyConsumed;
+	private boolean queuedStartExtend;
+
 	public float offset;
 	public float prevOffset;
 
@@ -43,56 +46,65 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 		GhastHotAirBalloonAssemblyStationBlockEntity be) {
 		be.prevOffset = be.offset;
 
-		if (be.running)
-			be.offset += SPEED;
-
-		if (level.isClientSide)
+		if (level.isClientSide) {
+			if (be.extending)
+				be.offset += SPEED;
+			else if (be.retracting)
+				be.offset = Math.max(0, be.offset - SPEED);
 			return;
+		}
 
-		if (level.getGameTime() % ATTRACT_PERIOD_TICKS == 0)
-			be.tickAutoAttract(level, pos, state);
+		if (be.queuedStartExtend) {
+			be.queuedStartExtend = false;
+			be.extending = true;
+			be.retracting = false;
+			be.offset = 0;
+			be.prevOffset = 0;
+			be.sendUpdate();
+		}
 
-		if (be.queuedAssemble) {
-			be.queuedAssemble = false;
-			if (!be.running) {
-				be.running = true;
+		if (be.extending) {
+			be.offset += SPEED;
+			int nextDepth = Mth.floor(be.offset) + 1;
+			BlockPos checkPos = pos.below(nextDepth);
+
+			if (level.isOutsideBuildHeight(checkPos)) {
+				be.holdHere();
+			} else {
+				BlockState checkState = level.getBlockState(checkPos);
+				if (!checkState.isAir()) {
+					boolean movable = BlockMovementChecks.isMovementNecessary(checkState, level, checkPos)
+						&& !BlockMovementChecks.isBrittle(checkState);
+					if (movable && be.tryAssemble(checkPos, nextDepth)) {
+						be.onAssembledSuccessfully();
+					} else {
+						be.holdHere();
+					}
+				} else {
+					int maxLength = AllConfigs.server().kinetics.maxRopeLength.get();
+					if (be.offset >= maxLength)
+						be.holdHere();
+				}
+			}
+		} else if (be.retracting) {
+			be.offset -= SPEED;
+			if (be.offset <= 0) {
 				be.offset = 0;
-				be.prevOffset = 0;
+				be.retracting = false;
 				be.sendUpdate();
 			}
 		}
 
-		if (!be.running)
-			return;
-
-		int nextDepth = Mth.floor(be.offset) + 1;
-		BlockPos checkPos = pos.below(nextDepth);
-		if (level.isOutsideBuildHeight(checkPos)) {
-			be.stopRunning();
-			return;
-		}
-		BlockState checkState = level.getBlockState(checkPos);
-		if (!checkState.isAir()) {
-			boolean movable = BlockMovementChecks.isMovementNecessary(checkState, level, checkPos)
-				&& !BlockMovementChecks.isBrittle(checkState);
-			if (movable)
-				be.doAssemble(checkPos, nextDepth);
-			be.stopRunning();
-			return;
-		}
-
-		int maxLength = AllConfigs.server().kinetics.maxRopeLength.get();
-		if (be.offset >= maxLength) {
-			be.stopRunning();
-			return;
-		}
+		if (level.getGameTime() % ATTRACT_PERIOD_TICKS == 0)
+			be.tickAutoAttract(level, pos, state);
 	}
 
 	private void tickAutoAttract(Level level, BlockPos pos, BlockState state) {
 		if (GhastHotAirBalloonAssemblyStationBlock.isSeatOccupied(level, pos))
 			return;
+		boolean stationIdle = !wasPowered && offset == 0 && !extending && !retracting;
 		for (Ghast ghast : GhastHotAirBalloonAssemblyStationBlock.findGhastsToSeat(level, pos)) {
-			if (!GhastHotAirBalloonAssemblyStationBlock.canBePickedUp(ghast))
+			if (!GhastHotAirBalloonAssemblyStationBlock.canBePickedUp(ghast, stationIdle))
 				continue;
 			GhastHotAirBalloonAssemblyStationBlock.sitDown(level, pos, state, ghast);
 			return;
@@ -102,14 +114,38 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 	public void onNeighborSignalChanged(boolean powered) {
 		if (level == null || level.isClientSide)
 			return;
-		if (powered && !wasPowered)
-			queuedAssemble = true;
+
+		if (powered && !wasPowered) {
+			if (!assemblyConsumed && !extending && !retracting && offset == 0) {
+				queuedStartExtend = true;
+			} else if (retracting && !assemblyConsumed) {
+				retracting = false;
+				extending = true;
+				sendUpdate();
+			}
+		} else if (!powered && wasPowered) {
+			assemblyConsumed = false;
+			if (extending || offset > 0) {
+				extending = false;
+				retracting = true;
+				sendUpdate();
+			}
+		}
+
 		wasPowered = powered;
 		setChanged();
 	}
 
-	private void stopRunning() {
-		running = false;
+	private void holdHere() {
+		extending = false;
+		retracting = false;
+		sendUpdate();
+	}
+
+	private void onAssembledSuccessfully() {
+		extending = false;
+		retracting = false;
+		assemblyConsumed = true;
 		offset = 0;
 		prevOffset = 0;
 		sendUpdate();
@@ -121,31 +157,31 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 			level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
 	}
 
-	private void doAssemble(BlockPos anchorPos, int ropeLength) {
+	private boolean tryAssemble(BlockPos anchorPos, int ropeLength) {
 		if (level == null || level.isClientSide)
-			return;
+			return false;
 
 		BlockPos seatPos = worldPosition.above();
 		AABB seatBox = new AABB(seatPos).inflate(0.1);
 		List<GhastHotAirBalloonSeatEntity> seats =
 			level.getEntitiesOfClass(GhastHotAirBalloonSeatEntity.class, seatBox);
 		if (seats.isEmpty())
-			return;
+			return false;
 		GhastHotAirBalloonSeatEntity seat = seats.get(0);
 		List<Entity> passengers = seat.getPassengers();
 		if (passengers.isEmpty() || !(passengers.get(0) instanceof Ghast ghast))
-			return;
+			return false;
 
 		int initialOffset = ropeLength + 1;
 		GhastHotAirBalloonContraption contraption = new GhastHotAirBalloonContraption(initialOffset);
 		try {
 			if (!contraption.assemble(level, anchorPos))
-				return;
+				return false;
 		} catch (AssemblyException e) {
-			return;
+			return false;
 		}
 		if (contraption.getBlocks().isEmpty())
-			return;
+			return false;
 
 		contraption.removeBlocksFromWorld(level, BlockPos.ZERO);
 
@@ -160,10 +196,12 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 		contraptionEntity.setPos(anchorPos.getX() + 0.5, anchorPos.getY(), anchorPos.getZ() + 0.5);
 		level.addFreshEntity(contraptionEntity);
 		contraptionEntity.startRiding(ghast, true);
+		contraption.onEntityInitialize(level, contraptionEntity);
+		return true;
 	}
 
 	public boolean isRunning() {
-		return running;
+		return extending || retracting || offset > 0;
 	}
 
 	public float getInterpolatedOffset(float partialTicks) {
@@ -191,7 +229,9 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 	protected void saveAdditional(CompoundTag tag) {
 		super.saveAdditional(tag);
 		tag.putBoolean("WasPowered", wasPowered);
-		tag.putBoolean("Running", running);
+		tag.putBoolean("Extending", extending);
+		tag.putBoolean("Retracting", retracting);
+		tag.putBoolean("AssemblyConsumed", assemblyConsumed);
 		tag.putFloat("Offset", offset);
 	}
 
@@ -199,10 +239,13 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 	public void load(CompoundTag tag) {
 		super.load(tag);
 		wasPowered = tag.getBoolean("WasPowered");
-		boolean wasRunning = running;
-		running = tag.getBoolean("Running");
+		boolean wasExtending = extending;
+		boolean wasRetracting = retracting;
+		extending = tag.getBoolean("Extending");
+		retracting = tag.getBoolean("Retracting");
+		assemblyConsumed = tag.getBoolean("AssemblyConsumed");
 		offset = tag.getFloat("Offset");
-		if (!wasRunning)
+		if (!wasExtending && !wasRetracting)
 			prevOffset = offset;
 	}
 }

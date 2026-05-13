@@ -1,8 +1,12 @@
 package com.nobodiiiii.createbiotech.content.ghasthotairballoon;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
+import com.simibubi.create.AllPackets;
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.actors.trainControls.ControlsHandler;
+import com.simibubi.create.content.contraptions.actors.trainControls.ControlsInputPacket;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
@@ -43,6 +47,11 @@ public class GhastHelmClientHandler {
 
 		boolean sprintDown = minecraft.options.keySprint.isDown();
 		if (sprintDown && !previousSprintDown) {
+			AbstractContraptionEntity contraption = ControlsHandler.getContraption();
+			BlockPos controlsPos = ControlsHandler.getControlsPos();
+			if (contraption != null && controlsPos != null)
+				AllPackets.getChannel().sendToServer(
+					new ControlsInputPacket(ControlsHandler.currentlyPressed, false, contraption.getId(), controlsPos, true));
 			ControlsHandler.stopControlling();
 			reset();
 			return;

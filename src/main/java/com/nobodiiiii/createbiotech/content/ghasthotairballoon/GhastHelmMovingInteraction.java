@@ -34,7 +34,7 @@ public class GhastHelmMovingInteraction extends MovingInteractionBehaviour {
 				return true;
 		}
 
-		if (!ghastBalloon.startControlling(localPos, player))
+		if (!player.level().isClientSide && !ghastBalloon.startControlling(localPos, player))
 			return false;
 
 		contraptionEntity.setControllingPlayer(player.getUUID());

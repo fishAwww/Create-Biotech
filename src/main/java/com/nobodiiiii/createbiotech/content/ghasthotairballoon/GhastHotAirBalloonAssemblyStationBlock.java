@@ -108,21 +108,37 @@ public class GhastHotAirBalloonAssemblyStationBlock extends BaseEntityBlock {
 			.isEmpty();
 	}
 
-	public static boolean canBePickedUp(Entity passenger) {
+	public static boolean canBePickedUp(Entity passenger, boolean allowContraptionPickup) {
 		if (!(passenger instanceof Ghast ghast))
 			return false;
 		if (!ghast.isAlive())
 			return false;
 		if (ghast.isPassenger())
 			return false;
-		if (ghast.isVehicle())
-			return false;
+		if (ghast.isVehicle()) {
+			if (!allowContraptionPickup)
+				return false;
+			boolean hasContraption = false;
+			for (Entity p : ghast.getPassengers()) {
+				if (p instanceof GhastHotAirBalloonEntity gc && gc.isAlive()) {
+					hasContraption = true;
+				} else {
+					return false;
+				}
+			}
+			return hasContraption;
+		}
 		return true;
 	}
 
 	public static void sitDown(Level world, BlockPos stationPos, BlockState state, Ghast ghast) {
 		if (world.isClientSide)
 			return;
+		List<GhastHotAirBalloonEntity> contraptions = new java.util.ArrayList<>();
+		for (Entity p : ghast.getPassengers()) {
+			if (p instanceof GhastHotAirBalloonEntity gc && gc.isAlive())
+				contraptions.add(gc);
+		}
 		BlockPos seatPos = stationPos.above();
 		float yaw = getFacingYaw(state);
 		ghast.moveTo(seatPos.getX() + 0.5, seatPos.getY(), seatPos.getZ() + 0.5, yaw, 0f);
@@ -136,6 +152,14 @@ public class GhastHotAirBalloonAssemblyStationBlock extends BaseEntityBlock {
 		if (!world.addFreshEntity(seat))
 			return;
 		ghast.startRiding(seat, true);
+
+		for (GhastHotAirBalloonEntity gc : contraptions) {
+			if (!gc.isAlive())
+				continue;
+			double yOffset = gc.getMyRidingOffset();
+			gc.setPos(ghast.getX(), ghast.getY() + yOffset, ghast.getZ());
+			gc.disassemble();
+		}
 	}
 
 	private static float getFacingYaw(BlockState state) {
