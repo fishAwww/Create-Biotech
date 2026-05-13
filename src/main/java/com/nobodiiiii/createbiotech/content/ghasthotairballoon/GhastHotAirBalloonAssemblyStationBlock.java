@@ -139,7 +139,9 @@ public class GhastHotAirBalloonAssemblyStationBlock extends BaseEntityBlock {
 	}
 
 	private static float getFacingYaw(BlockState state) {
-		return state.getValue(HORIZONTAL_FACING).toYRot();
+		return state.getValue(HORIZONTAL_FACING)
+			.getCounterClockWise()
+			.toYRot();
 	}
 
 	public static List<Ghast> findGhastsToSeat(Level world, BlockPos stationPos) {
