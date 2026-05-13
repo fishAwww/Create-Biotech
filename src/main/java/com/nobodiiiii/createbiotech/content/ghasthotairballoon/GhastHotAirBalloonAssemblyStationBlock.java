@@ -156,8 +156,6 @@ public class GhastHotAirBalloonAssemblyStationBlock extends BaseEntityBlock {
 		for (GhastHotAirBalloonEntity gc : contraptions) {
 			if (!gc.isAlive())
 				continue;
-			double yOffset = gc.getMyRidingOffset();
-			gc.setPos(ghast.getX(), ghast.getY() + yOffset, ghast.getZ());
 			gc.disassemble();
 		}
 	}
