@@ -23,6 +23,7 @@ import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.PacketDistributor;
 
@@ -50,6 +51,9 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 	private static final float TURN_DIRECTION_EPSILON = 0.25f;
 	private static final double MOTION_EPSILON = 1.0E-4d;
 	private static final int INPUT_TIMEOUT_TICKS = 8;
+	private static final int MAGNET_TIMEOUT_TICKS = 12;
+	private static final double MAGNET_ARRIVAL_DEADZONE_SQR = 0.01d;
+	private static final double MAGNET_BRAKE_DISTANCE = 2.5d;
 
 	private float deltaRotation;
 	private int inputTimeout;
@@ -59,6 +63,9 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 	private boolean inputRight;
 	private boolean inputUp;
 	private boolean inputDown;
+
+	private BlockPos magnetTargetPos;
+	private int magnetExpireTicks;
 
 	public GhastHotAirBalloonEntity(EntityType<?> type, Level level) {
 		super(type, level);
@@ -99,6 +106,7 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 			ghast.setNoAi(true);
 			CapturedEntityBoxHelper.markAiDisabledByMod(ghast);
 			tickInputTimeout();
+			tickMagnetExpiry();
 			applyControlledMovement(ghast);
 		}
 
@@ -109,6 +117,38 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 
 		if (ghast != null)
 			syncVisualYawWhileTurningInPlace(ghast, ghast.getDeltaMovement());
+	}
+
+	public void setMagnetTarget(BlockPos pos) {
+		magnetTargetPos = pos;
+		magnetExpireTicks = MAGNET_TIMEOUT_TICKS;
+	}
+
+	public void clearMagnetTarget() {
+		magnetTargetPos = null;
+		magnetExpireTicks = 0;
+	}
+
+	private void tickMagnetExpiry() {
+		if (magnetTargetPos == null)
+			return;
+		if (magnetExpireTicks > 0)
+			magnetExpireTicks--;
+		if (magnetExpireTicks <= 0 || !isMagnetTargetValid()) {
+			magnetTargetPos = null;
+			magnetExpireTicks = 0;
+		}
+	}
+
+	private boolean isMagnetTargetValid() {
+		if (magnetTargetPos == null || level() == null)
+			return false;
+		if (!level().isLoaded(magnetTargetPos))
+			return false;
+		BlockEntity be = level().getBlockEntity(magnetTargetPos);
+		if (!(be instanceof GhastHotAirBalloonAssemblyStationBlockEntity station))
+			return false;
+		return station.isReadyToAccept();
 	}
 
 	private void restorePassengerSeatMappings() {
@@ -254,6 +294,11 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 	}
 
 	private void applyControlledMovement(Ghast ghast) {
+		if (magnetTargetPos != null) {
+			applyMagnetMovement(ghast);
+			return;
+		}
+
 		Vec3 movement = ghast.getDeltaMovement().multiply(HORIZONTAL_DRAG, VERTICAL_DRAG, HORIZONTAL_DRAG);
 
 		float desiredTurnSpeed = 0;
@@ -281,6 +326,32 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 			movement = movement.add(0, verticalThrust, 0);
 
 		movement = clampMovement(movement);
+		ghast.setDeltaMovement(movement);
+		ghast.move(MoverType.SELF, movement);
+		ghast.hasImpulse = true;
+		ghast.hurtMarked = true;
+	}
+
+	private void applyMagnetMovement(Ghast ghast) {
+		double targetY = magnetTargetPos.getY() + 1 + GhastHotAirBalloonSeatEntity.GHAST_PASSENGER_Y_OFFSET;
+		Vec3 target = new Vec3(magnetTargetPos.getX() + 0.5, targetY, magnetTargetPos.getZ() + 0.5);
+		Vec3 delta = target.subtract(ghast.position());
+
+		double horizDist = Math.sqrt(delta.x * delta.x + delta.z * delta.z);
+		double horizSpeed = Math.min(MAX_HORIZONTAL_SPEED, horizDist / MAGNET_BRAKE_DISTANCE * MAX_HORIZONTAL_SPEED);
+		double vertSpeed = Mth.clamp(delta.y / MAGNET_BRAKE_DISTANCE * MAX_VERTICAL_SPEED,
+			-MAX_VERTICAL_SPEED, MAX_VERTICAL_SPEED);
+
+		double mx = horizDist > 1.0E-6 ? delta.x / horizDist * horizSpeed : 0;
+		double mz = horizDist > 1.0E-6 ? delta.z / horizDist * horizSpeed : 0;
+		Vec3 movement = clampMovement(new Vec3(mx, vertSpeed, mz));
+
+		deltaRotation = 0;
+		if (horizDist > 1.0E-6) {
+			float targetYaw = (float) Math.toDegrees(Math.atan2(-delta.x, delta.z));
+			applyYaw(ghast, targetYaw);
+		}
+
 		ghast.setDeltaMovement(movement);
 		ghast.move(MoverType.SELF, movement);
 		ghast.hasImpulse = true;

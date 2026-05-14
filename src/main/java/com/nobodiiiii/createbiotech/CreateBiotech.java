@@ -1,6 +1,7 @@
 package com.nobodiiiii.createbiotech;
 
 import com.nobodiiiii.createbiotech.content.fixedcarrotfishingrod.FixedCarrotFishingRodGoalHandler;
+import com.nobodiiiii.createbiotech.content.aircushion.AirCushionMovementBehaviour;
 import com.nobodiiiii.createbiotech.content.explosionproofitemvault.ExplosionProofItemVaultCompat;
 import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHelmMovingInteraction;
 import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHelmMovementBehaviour;
@@ -45,6 +46,7 @@ public class CreateBiotech {
 		event.enqueueWork(() -> {
 			ExplosionProofItemVaultCompat.register();
 			MovementBehaviour.REGISTRY.register(CBBlocks.GHAST_HELM.get(), new GhastHelmMovementBehaviour());
+			MovementBehaviour.REGISTRY.register(CBBlocks.AIR_CUSHION.get(), new AirCushionMovementBehaviour());
 			MovingInteractionBehaviour.REGISTRY.register(CBBlocks.GHAST_HELM.get(), new GhastHelmMovingInteraction());
 		});
 	}
