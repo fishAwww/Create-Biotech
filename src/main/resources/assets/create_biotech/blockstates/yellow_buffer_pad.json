@@ -1,0 +1,29 @@
+{
+  "variants": {
+    "facing=down": {
+      "model": "create_biotech:block/yellow_buffer_pad"
+    },
+    "facing=up": {
+      "model": "create_biotech:block/yellow_buffer_pad",
+      "x": 180
+    },
+    "facing=north": {
+      "model": "create_biotech:block/yellow_buffer_pad",
+      "x": 270
+    },
+    "facing=south": {
+      "model": "create_biotech:block/yellow_buffer_pad",
+      "x": 90
+    },
+    "facing=west": {
+      "model": "create_biotech:block/yellow_buffer_pad",
+      "x": 90,
+      "y": 90
+    },
+    "facing=east": {
+      "model": "create_biotech:block/yellow_buffer_pad",
+      "x": 90,
+      "y": 270
+    }
+  }
+}

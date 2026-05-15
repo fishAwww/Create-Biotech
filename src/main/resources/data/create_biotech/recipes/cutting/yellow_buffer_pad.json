@@ -1,0 +1,14 @@
+{
+  "type": "create:cutting",
+  "ingredients": [
+    {
+      "item": "minecraft:yellow_wool"
+    }
+  ],
+  "processingTime": 50,
+  "results": [
+    {
+      "item": "create_biotech:yellow_buffer_pad"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "type": "create:cutting",
+  "ingredients": [
+    {
+      "item": "minecraft:magenta_wool"
+    }
+  ],
+  "processingTime": 50,
+  "results": [
+    {
+      "item": "create_biotech:magenta_buffer_pad"
+    }
+  ]
+}

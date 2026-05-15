@@ -42,20 +42,20 @@ public class CBCreativeModeTabs {
 				output.accept(CBItems.EXPLOSION_PROOF_ITEM_VAULT.get());
 				output.accept(CBItems.BLAST_PROOF_GLASS.get());
 				output.accept(CBItems.BLAST_PROOF_FRAMED_GLASS.get());
-				acceptAirCushions(output);
+				acceptBufferPads(output);
 				output.accept(CBFluids.LIQUID_LIVING_SLIME_BUCKET.get());
 			})
 			.build());
 
 	private CBCreativeModeTabs() {}
 
-	private static void acceptAirCushions(Output output) {
+	private static void acceptBufferPads(Output output) {
 		for (DyeColor color : DyeColor.values()) {
 			if (color == DyeColor.RED) {
-				output.accept(CBItems.AIR_CUSHIONS.get(color).get());
+				output.accept(CBItems.BUFFER_PADS.get(color).get());
 				continue;
 			}
-			output.accept(CBItems.AIR_CUSHIONS.get(color).get(), TabVisibility.SEARCH_TAB_ONLY);
+			output.accept(CBItems.BUFFER_PADS.get(color).get(), TabVisibility.SEARCH_TAB_ONLY);
 		}
 	}
 

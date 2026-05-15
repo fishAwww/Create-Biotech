@@ -86,8 +86,8 @@ public class CBItems {
 	public static final RegistryObject<Item> BLAST_PROOF_FRAMED_GLASS = ITEMS.register("blast_proof_framed_glass",
 		() -> new BlockItem(CBBlocks.BLAST_PROOF_FRAMED_GLASS.get(), new Item.Properties()));
 
-	public static final Map<DyeColor, RegistryObject<Item>> AIR_CUSHIONS = registerAirCushions();
-	public static final RegistryObject<Item> AIR_CUSHION = AIR_CUSHIONS.get(DyeColor.RED);
+	public static final Map<DyeColor, RegistryObject<Item>> BUFFER_PADS = registerBufferPads();
+	public static final RegistryObject<Item> BUFFER_PAD = BUFFER_PADS.get(DyeColor.RED);
 
 	private CBItems() {}
 
@@ -111,13 +111,13 @@ public class CBItems {
 		return isSlimeBeltConnector(stack) || isMagmaBeltConnector(stack) || isPowerBeltConnector(stack);
 	}
 
-	private static Map<DyeColor, RegistryObject<Item>> registerAirCushions() {
-		EnumMap<DyeColor, RegistryObject<Item>> airCushions = new EnumMap<>(DyeColor.class);
+	private static Map<DyeColor, RegistryObject<Item>> registerBufferPads() {
+		EnumMap<DyeColor, RegistryObject<Item>> bufferPads = new EnumMap<>(DyeColor.class);
 		for (DyeColor color : DyeColor.values()) {
-			String id = CBBlocks.airCushionId(color);
-			airCushions.put(color, ITEMS.register(id,
-				() -> new BlockItem(CBBlocks.AIR_CUSHIONS.get(color).get(), new Item.Properties())));
+			String id = CBBlocks.bufferPadId(color);
+			bufferPads.put(color, ITEMS.register(id,
+				() -> new BlockItem(CBBlocks.BUFFER_PADS.get(color).get(), new Item.Properties())));
 		}
-		return Collections.unmodifiableMap(airCushions);
+		return Collections.unmodifiableMap(bufferPads);
 	}
 }

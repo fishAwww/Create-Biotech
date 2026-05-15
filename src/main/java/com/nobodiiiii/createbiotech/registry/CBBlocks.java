@@ -5,7 +5,7 @@ import java.util.EnumMap;
 import java.util.Map;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
-import com.nobodiiiii.createbiotech.content.aircushion.AirCushionBlock;
+import com.nobodiiiii.createbiotech.content.bufferpad.BufferPadBlock;
 import com.nobodiiiii.createbiotech.content.evokertank.EvokerTankBlock;
 import com.nobodiiiii.createbiotech.content.explosionproofitemvault.ExplosionProofItemVaultBlock;
 import com.nobodiiiii.createbiotech.content.fixedcarrotfishingrod.FixedCarrotFishingRodBlock;
@@ -144,33 +144,33 @@ public class CBBlocks {
 		BLOCKS.register("blast_proof_framed_glass",
 			() -> new ConnectedGlassBlock(blastProofGlassProperties()));
 
-	public static final Map<DyeColor, RegistryObject<AirCushionBlock>> AIR_CUSHIONS = registerAirCushions();
-	public static final RegistryObject<AirCushionBlock> AIR_CUSHION = AIR_CUSHIONS.get(DyeColor.RED);
+	public static final Map<DyeColor, RegistryObject<BufferPadBlock>> BUFFER_PADS = registerBufferPads();
+	public static final RegistryObject<BufferPadBlock> BUFFER_PAD = BUFFER_PADS.get(DyeColor.RED);
 
 	private static Block.Properties blastProofGlassProperties() {
 		return Block.Properties.copy(Blocks.GLASS)
 			.strength(50.0f, 1200.0f);
 	}
 
-	private static Map<DyeColor, RegistryObject<AirCushionBlock>> registerAirCushions() {
-		EnumMap<DyeColor, RegistryObject<AirCushionBlock>> airCushions = new EnumMap<>(DyeColor.class);
+	private static Map<DyeColor, RegistryObject<BufferPadBlock>> registerBufferPads() {
+		EnumMap<DyeColor, RegistryObject<BufferPadBlock>> bufferPads = new EnumMap<>(DyeColor.class);
 		for (DyeColor color : DyeColor.values()) {
-			airCushions.put(color, BLOCKS.register(airCushionId(color),
-				() -> new AirCushionBlock(Block.Properties.of()
+			bufferPads.put(color, BLOCKS.register(bufferPadId(color),
+				() -> new BufferPadBlock(Block.Properties.of()
 					.sound(SoundType.WOOL)
 					.strength(0.4f)
 					.mapColor(color.getMapColor())
 					.noOcclusion())));
 		}
-		return Collections.unmodifiableMap(airCushions);
+		return Collections.unmodifiableMap(bufferPads);
 	}
 
-	public static String airCushionId(DyeColor color) {
-		return color == DyeColor.RED ? "air_cushion" : color.getName() + "_air_cushion";
+	public static String bufferPadId(DyeColor color) {
+		return color == DyeColor.RED ? "buffer_pad" : color.getName() + "_buffer_pad";
 	}
 
-	public static Iterable<RegistryObject<AirCushionBlock>> allAirCushions() {
-		return AIR_CUSHIONS.values();
+	public static Iterable<RegistryObject<BufferPadBlock>> allBufferPads() {
+		return BUFFER_PADS.values();
 	}
 
 	private CBBlocks() {}
