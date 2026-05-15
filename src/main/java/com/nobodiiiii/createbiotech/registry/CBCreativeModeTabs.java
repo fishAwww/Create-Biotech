@@ -6,6 +6,8 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTab.Output;
+import net.minecraft.world.item.CreativeModeTab.TabVisibility;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
@@ -40,13 +42,22 @@ public class CBCreativeModeTabs {
 				output.accept(CBItems.EXPLOSION_PROOF_ITEM_VAULT.get());
 				output.accept(CBItems.BLAST_PROOF_GLASS.get());
 				output.accept(CBItems.BLAST_PROOF_FRAMED_GLASS.get());
-				for (DyeColor color : DyeColor.values())
-					output.accept(CBItems.AIR_CUSHIONS.get(color).get());
+				acceptAirCushions(output);
 				output.accept(CBFluids.LIQUID_LIVING_SLIME_BUCKET.get());
 			})
 			.build());
 
 	private CBCreativeModeTabs() {}
+
+	private static void acceptAirCushions(Output output) {
+		for (DyeColor color : DyeColor.values()) {
+			if (color == DyeColor.RED) {
+				output.accept(CBItems.AIR_CUSHIONS.get(color).get());
+				continue;
+			}
+			output.accept(CBItems.AIR_CUSHIONS.get(color).get(), TabVisibility.SEARCH_TAB_ONLY);
+		}
+	}
 
 	public static void register(IEventBus modEventBus) {
 		CREATIVE_MODE_TABS.register(modEventBus);
