@@ -23,6 +23,9 @@ public class AirCushionMovementBehaviour implements MovementBehaviour {
 	private static final double IMPACT_SAMPLE_DISTANCE = 1.0E-4d;
 	private static final double MOVEMENT_EPSILON = 1.0E-4d;
 	private static final double ESCAPE_PUSH_SPEED = 0.05d;
+	private static final String ESCAPE_PUSH_NORMAL_X_TAG = "EscapePushNormalX";
+	private static final String ESCAPE_PUSH_NORMAL_Y_TAG = "EscapePushNormalY";
+	private static final String ESCAPE_PUSH_NORMAL_Z_TAG = "EscapePushNormalZ";
 
 	@Override
 	public void tick(MovementContext context) {
@@ -37,14 +40,26 @@ public class AirCushionMovementBehaviour implements MovementBehaviour {
 		if (entity instanceof GantryContraptionEntity)
 			return;
 
+		Vec3 previousEscapePushNormal = getStoredEscapePushNormal(context);
 		Vec3 collisionNormal = getCollisionNormal(context);
 		boolean collision = collisionNormal != null && collidesWithWorld(context.position, context, collisionNormal);
 		context.stall = false;
 
-		if (collision && entity != null) {
-			boolean escapeFromBlock = shouldApplyEscapePush(context, collisionNormal);
-			applyCollisionResponse(context, entity, collisionNormal, escapeFromBlock);
+		if (!collision) {
+			if (previousEscapePushNormal != null)
+				clearEscapeInfluence(context, entity, previousEscapePushNormal);
+			clearStoredEscapePushNormal(context);
+			return;
 		}
+
+		boolean escapeFromBlock = shouldApplyEscapePush(context, collisionNormal);
+		applyCollisionResponse(context, entity, collisionNormal, escapeFromBlock);
+		if (escapeFromBlock) {
+			storeEscapePushNormal(context, collisionNormal);
+			return;
+		}
+
+		clearStoredEscapePushNormal(context);
 	}
 
 	private static boolean collidesWithWorld(Vec3 position, MovementContext context, Vec3 collisionNormal) {
@@ -111,6 +126,17 @@ public class AirCushionMovementBehaviour implements MovementBehaviour {
 			.cart(), collisionNormal, escapeFromBlock);
 	}
 
+	private static void trimCoupledCarts(OrientedContraptionEntity entity, Vec3 collisionNormal) {
+		var coupledCarts = entity.getCoupledCartsIfPresent();
+		if (coupledCarts == null)
+			return;
+
+		trimEntityMotion(coupledCarts.getFirst()
+			.cart(), collisionNormal);
+		trimEntityMotion(coupledCarts.getSecond()
+			.cart(), collisionNormal);
+	}
+
 	private static void clipTrainSpeed(Vec3 actorMotion, Train train, Vec3 collisionNormal, boolean escapeFromBlock) {
 		Vec3 adjustedMotion = adjustMotionAgainstCollision(actorMotion, collisionNormal, escapeFromBlock);
 		if (adjustedMotion.equals(actorMotion))
@@ -124,8 +150,20 @@ public class AirCushionMovementBehaviour implements MovementBehaviour {
 		train.speed = adjustedSpeed;
 		if (train.speedBeforeStall != null)
 			train.speedBeforeStall = adjustedSpeed;
-		if (escapeFromBlock)
-			train.targetSpeed = adjustedSpeed;
+	}
+
+	private static void clearEscapeInfluence(MovementContext context, AbstractContraptionEntity entity,
+		Vec3 collisionNormal) {
+		trimEntityMotion(entity, collisionNormal);
+
+		if (entity instanceof CarriageContraptionEntity carriageEntity && carriageEntity.getCarriage() != null)
+			trimTrainSpeed(carriageEntity.getCarriage().train);
+
+		if (entity instanceof OrientedContraptionEntity orientedEntity)
+			trimCoupledCarts(orientedEntity, collisionNormal);
+
+		for (Entity current = entity.getVehicle(); current != null; current = current.getVehicle())
+			trimEntityMotion(current, collisionNormal);
 	}
 
 	private static void clipEntityPosition(Entity entity, Vec3 collisionNormal) {
@@ -163,6 +201,25 @@ public class AirCushionMovementBehaviour implements MovementBehaviour {
 			clipFurnacePush(furnaceCart, collisionNormal, escapeFromBlock);
 	}
 
+	private static void trimEntityMotion(Entity entity, Vec3 collisionNormal) {
+		if (entity == null)
+			return;
+
+		Vec3 motion = entity.getDeltaMovement();
+		Vec3 trimmedMotion = removeEscapeVelocityContribution(motion, collisionNormal);
+		if (trimmedMotion.equals(motion))
+			return;
+
+		if (entity instanceof AbstractContraptionEntity contraptionEntity)
+			contraptionEntity.setContraptionMotion(trimmedMotion);
+		else
+			entity.setDeltaMovement(trimmedMotion);
+		entity.hurtMarked = true;
+
+		if (entity instanceof MinecartFurnace furnaceCart)
+			trimFurnacePush(furnaceCart, collisionNormal);
+	}
+
 	private static void clipFurnacePush(MinecartFurnace furnaceCart, Vec3 collisionNormal, boolean escapeFromBlock) {
 		Vec3 horizontalNormal = new Vec3(collisionNormal.x, 0, collisionNormal.z);
 		if (horizontalNormal.lengthSqr() < MOVEMENT_EPSILON)
@@ -178,6 +235,24 @@ public class AirCushionMovementBehaviour implements MovementBehaviour {
 
 		nbt.putDouble("PushX", adjustedPush.x);
 		nbt.putDouble("PushZ", adjustedPush.z);
+		furnaceCart.deserializeNBT(nbt);
+	}
+
+	private static void trimFurnacePush(MinecartFurnace furnaceCart, Vec3 collisionNormal) {
+		Vec3 horizontalNormal = new Vec3(collisionNormal.x, 0, collisionNormal.z);
+		if (horizontalNormal.lengthSqr() < MOVEMENT_EPSILON)
+			return;
+
+		horizontalNormal = horizontalNormal.normalize();
+
+		CompoundTag nbt = furnaceCart.serializeNBT();
+		Vec3 push = new Vec3(nbt.getDouble("PushX"), 0, nbt.getDouble("PushZ"));
+		Vec3 trimmedPush = removeEscapeVelocityContribution(push, horizontalNormal);
+		if (trimmedPush.equals(push))
+			return;
+
+		nbt.putDouble("PushX", trimmedPush.x);
+		nbt.putDouble("PushZ", trimmedPush.z);
 		furnaceCart.deserializeNBT(nbt);
 	}
 
@@ -213,6 +288,12 @@ public class AirCushionMovementBehaviour implements MovementBehaviour {
 		return speed;
 	}
 
+	private static void trimTrainSpeed(Train train) {
+		train.speed = trimEscapeSpeedMagnitude(train.speed);
+		if (train.speedBeforeStall != null)
+			train.speedBeforeStall = trimEscapeSpeedMagnitude(train.speedBeforeStall);
+	}
+
 	private static Vec3 adjustMotionAgainstCollision(Vec3 motion, Vec3 collisionNormal, boolean escapeFromBlock) {
 		Vec3 adjustedMotion = removeVelocityIntoCollisionFace(motion, collisionNormal);
 		if (!escapeFromBlock)
@@ -227,10 +308,53 @@ public class AirCushionMovementBehaviour implements MovementBehaviour {
 		return motion.subtract(collisionNormal.scale(normalSpeed + ESCAPE_PUSH_SPEED));
 	}
 
+	private static Vec3 removeEscapeVelocityContribution(Vec3 motion, Vec3 collisionNormal) {
+		double normalSpeed = motion.dot(collisionNormal);
+		if (normalSpeed >= -MOVEMENT_EPSILON)
+			return motion;
+		double cancelledSpeed = Math.min(-normalSpeed, ESCAPE_PUSH_SPEED);
+		return motion.add(collisionNormal.scale(cancelledSpeed));
+	}
+
 	private static Vec3 removeVelocityIntoCollisionFace(Vec3 motion, Vec3 collisionNormal) {
 		double intoCollisionFace = motion.dot(collisionNormal);
 		if (intoCollisionFace <= MOVEMENT_EPSILON)
 			return motion;
 		return motion.subtract(collisionNormal.scale(intoCollisionFace));
+	}
+
+	private static double trimEscapeSpeedMagnitude(double speed) {
+		double magnitude = Math.abs(speed);
+		if (magnitude < MOVEMENT_EPSILON)
+			return 0;
+		double trimmedMagnitude = Math.max(0, magnitude - ESCAPE_PUSH_SPEED);
+		if (trimmedMagnitude < MOVEMENT_EPSILON)
+			return 0;
+		return Math.copySign(trimmedMagnitude, speed);
+	}
+
+	private static void storeEscapePushNormal(MovementContext context, Vec3 collisionNormal) {
+		context.data.putDouble(ESCAPE_PUSH_NORMAL_X_TAG, collisionNormal.x);
+		context.data.putDouble(ESCAPE_PUSH_NORMAL_Y_TAG, collisionNormal.y);
+		context.data.putDouble(ESCAPE_PUSH_NORMAL_Z_TAG, collisionNormal.z);
+	}
+
+	private static void clearStoredEscapePushNormal(MovementContext context) {
+		context.data.remove(ESCAPE_PUSH_NORMAL_X_TAG);
+		context.data.remove(ESCAPE_PUSH_NORMAL_Y_TAG);
+		context.data.remove(ESCAPE_PUSH_NORMAL_Z_TAG);
+	}
+
+	private static Vec3 getStoredEscapePushNormal(MovementContext context) {
+		if (!context.data.contains(ESCAPE_PUSH_NORMAL_X_TAG)
+			|| !context.data.contains(ESCAPE_PUSH_NORMAL_Y_TAG)
+			|| !context.data.contains(ESCAPE_PUSH_NORMAL_Z_TAG))
+			return null;
+
+		Vec3 collisionNormal = new Vec3(context.data.getDouble(ESCAPE_PUSH_NORMAL_X_TAG),
+			context.data.getDouble(ESCAPE_PUSH_NORMAL_Y_TAG), context.data.getDouble(ESCAPE_PUSH_NORMAL_Z_TAG));
+		if (collisionNormal.lengthSqr() < MOVEMENT_EPSILON)
+			return null;
+		return collisionNormal.normalize();
 	}
 }
