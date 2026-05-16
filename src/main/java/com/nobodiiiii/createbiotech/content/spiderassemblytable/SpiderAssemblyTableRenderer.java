@@ -4,11 +4,11 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.nobodiiiii.createbiotech.content.spiderassemblytable.SpiderAssemblyTableBlockEntity.MachineKind;
+import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllPartialModels;
 import com.simibubi.create.content.kinetics.base.DirectionalAxisKineticBlock;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
 
-import dev.engine_room.flywheel.lib.model.baked.PartialModel;
 import net.createmod.catnip.math.AngleHelper;
 import net.createmod.catnip.render.CachedBuffers;
 import net.createmod.catnip.render.SuperByteBuffer;
@@ -144,12 +144,19 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 			ms.translate(tipMx / 16f, tipMy / 16f, tipMz / 16f);
 			ms.mulPose(orientation);
 			ms.scale(MACHINE_SCALE, MACHINE_SCALE, MACHINE_SCALE);
-			ms.translate(-0.5d, -1.0d, -0.5d);
-			Minecraft.getInstance()
-				.getBlockRenderer()
-				.renderSingleBlock(machineState, ms, buffer, light, OverlayTexture.NO_OVERLAY,
-					ModelData.EMPTY, null);
-			renderMachineParts(kind, machineState, ms, buffer, light);
+
+			if (kind == MachineKind.SPOUT) {
+				ms.scale(0.25f, 1.5f, 0.25f);
+				ms.translate(-0.5d, -1.0d, -0.5d);
+				Minecraft.getInstance()
+					.getBlockRenderer()
+					.renderSingleBlock(machineState, ms, buffer, light, OverlayTexture.NO_OVERLAY,
+						ModelData.EMPTY, null);
+				renderMachineParts(kind, machineState, ms, buffer, light);
+			} else {
+				ms.translate(-0.5d, -1.5d, -0.5d);
+				renderMachineParts(kind, machineState, ms, buffer, light);
+			}
 			ms.popPose();
 		}
 	}
@@ -176,6 +183,13 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 		return state;
 	}
 
+	private static BlockState deployerPoleState() {
+		BlockState state = AllBlocks.DEPLOYER.getDefaultState();
+		if (state.hasProperty(BlockStateProperties.FACING))
+			state = state.setValue(BlockStateProperties.FACING, Direction.DOWN);
+		return state;
+	}
+
 	private static void renderMachineParts(MachineKind kind, BlockState state, PoseStack ms, MultiBufferSource buffer,
 		int light) {
 		VertexConsumer solid = buffer.getBuffer(RenderType.solid());
@@ -189,19 +203,23 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 				.renderInto(ms, solid);
 		}
 		case PRESS -> {
+			BlockState poleState = deployerPoleState();
+			transformDeployerPart(CachedBuffers.partial(AllPartialModels.DEPLOYER_POLE, poleState), poleState, true)
+				.light(light)
+				.renderInto(ms, solid);
 			Direction pressFacing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
 			CachedBuffers.partialFacing(AllPartialModels.MECHANICAL_PRESS_HEAD, state, pressFacing)
+				.translate(0, -0.75f, 0)
 				.light(light)
 				.renderInto(ms, solid);
 		}
 		case SAW -> {
-			Direction sawFacing = state.getValue(BlockStateProperties.FACING);
-			boolean horizontalSaw = sawFacing.getAxis()
-				.isHorizontal();
-			PartialModel bladeModel =
-				horizontalSaw ? AllPartialModels.SAW_BLADE_HORIZONTAL_INACTIVE : AllPartialModels.SAW_BLADE_VERTICAL_INACTIVE;
-			SuperByteBuffer blade = CachedBuffers.partialFacing(bladeModel, state);
-			if (!horizontalSaw && state.getValue(DirectionalAxisKineticBlock.AXIS_ALONG_FIRST_COORDINATE))
+			BlockState poleState = deployerPoleState();
+			transformDeployerPart(CachedBuffers.partial(AllPartialModels.DEPLOYER_POLE, poleState), poleState, true)
+				.light(light)
+				.renderInto(ms, solid);
+			SuperByteBuffer blade = CachedBuffers.partialFacing(AllPartialModels.SAW_BLADE_VERTICAL_INACTIVE, state);
+			if (state.getValue(DirectionalAxisKineticBlock.AXIS_ALONG_FIRST_COORDINATE))
 				blade.rotateCentered(AngleHelper.rad(90), Direction.UP);
 			blade.color(0xFFFFFF)
 				.light(light)
