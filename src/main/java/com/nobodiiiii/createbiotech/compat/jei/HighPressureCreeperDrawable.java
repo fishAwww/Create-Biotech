@@ -22,7 +22,8 @@ import net.minecraft.world.level.Level;
 
 public class HighPressureCreeperDrawable extends AnimatedKinetics {
 	private static final int PRESS_CYCLE = 30;
-	private static final int PRESS_SCALE = 24;
+	private static final int PRESS_RENDER_Z = 100;
+	private static final int PRESS_SCALE = 20;
 	private static final float PRESS_EFFECT_START_OFFSET = 0.4f;
 	private static final CompoundTag CHARGED_CREEPER_TAG = createChargedCreeperTag();
 
@@ -86,7 +87,7 @@ public class HighPressureCreeperDrawable extends AnimatedKinetics {
 	private void renderPressBody(GuiGraphics guiGraphics, int xOffset, int yOffset) {
 		PoseStack poseStack = guiGraphics.pose();
 		poseStack.pushPose();
-		poseStack.translate(xOffset, yOffset, 200);
+		poseStack.translate(xOffset, yOffset, PRESS_RENDER_Z);
 		poseStack.mulPose(Axis.XP.rotationDegrees(-15.5f));
 		poseStack.mulPose(Axis.YP.rotationDegrees(22.5f));
 
@@ -105,7 +106,7 @@ public class HighPressureCreeperDrawable extends AnimatedKinetics {
 	private void renderPressHead(GuiGraphics guiGraphics, int xOffset, int yOffset, float headOffset) {
 		PoseStack poseStack = guiGraphics.pose();
 		poseStack.pushPose();
-		poseStack.translate(xOffset, yOffset, 200);
+		poseStack.translate(xOffset, yOffset, PRESS_RENDER_Z);
 		poseStack.mulPose(Axis.XP.rotationDegrees(-15.5f));
 		poseStack.mulPose(Axis.YP.rotationDegrees(22.5f));
 

@@ -37,6 +37,10 @@ public class CreeperBlastChamberHighPressureJeiCategory extends PressingCategory
 
 	@Override
 	public void setRecipe(IRecipeLayoutBuilder builder, PressingRecipe recipe, IFocusGroup focuses) {
+		builder.addSlot(RecipeIngredientRole.CATALYST, 51, 5)
+			.setBackground(getRenderedSlot(), -1, -1)
+			.addItemStack(new ItemStack(CBBlocks.CREEPER_BLAST_CHAMBER.get()));
+
 		builder.addSlot(RecipeIngredientRole.INPUT, 27, 51)
 			.setBackground(getRenderedSlot(), -1, -1)
 			.addIngredients(recipe.getIngredients().get(0));
