@@ -31,6 +31,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.monster.Spider;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -166,7 +167,7 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 						ModelData.EMPTY, null);
 				renderMachineParts(be, slot, kind, machineState, ms, buffer, light, partialTicks, isActive);
 			} else {
-				ms.translate(-0.5d, -1.5d, -0.5d);
+				ms.translate(-0.5d, -1.625d, -0.5d);
 				renderMachineParts(be, slot, kind, machineState, ms, buffer, light, partialTicks, isActive);
 			}
 			ms.popPose();
@@ -210,9 +211,9 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 		case DEPLOYER -> {
 			ItemStack heldItem =
 				inventory.getStackInSlot(SpiderAssemblyTableBlockEntity.ITEM_CACHE_SLOT_START + slot);
-			PartialModel handPose = (isActive || !heldItem.isEmpty())
-				? AllPartialModels.DEPLOYER_HAND_PUNCHING
-				: AllPartialModels.DEPLOYER_HAND_POINTING;
+			PartialModel handPose = heldItem.isEmpty()
+				? AllPartialModels.DEPLOYER_HAND_POINTING
+				: AllPartialModels.DEPLOYER_HAND_HOLDING;
 			transformDeployerPart(CachedBuffers.partial(AllPartialModels.DEPLOYER_POLE, state), state, true)
 				.light(light)
 				.renderInto(ms, solid);
@@ -227,30 +228,31 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 			transformDeployerPart(CachedBuffers.partial(AllPartialModels.DEPLOYER_POLE, poleState), poleState, true)
 				.light(light)
 				.renderInto(ms, solid);
+
+			ms.pushPose();
+			ms.translate(0.5d, 0d, 0.5d);
+			ms.scale(0.9f, 1.0f, 0.9f);
+			ms.translate(-0.5d, 0d, -0.5d);
 			Direction pressFacing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
 			CachedBuffers.partialFacing(AllPartialModels.MECHANICAL_PRESS_HEAD, state, pressFacing)
-				.translate(0, -0.75f, 0)
+				.translate(0, -0.85f, 0)
 				.light(light)
 				.renderInto(ms, solid);
+			ms.popPose();
 		}
 		case SAW -> {
 			BlockState poleState = deployerPoleState();
 			transformDeployerPart(CachedBuffers.partial(AllPartialModels.DEPLOYER_POLE, poleState), poleState, true)
 				.light(light)
 				.renderInto(ms, solid);
-			SuperByteBuffer blade = CachedBuffers.partialFacing(AllPartialModels.SAW_BLADE_VERTICAL_INACTIVE, state);
+
 			boolean axisAlongFirst = state.getValue(DirectionalAxisKineticBlock.AXIS_ALONG_FIRST_COORDINATE);
-			if (axisAlongFirst)
-				blade.rotateCentered(AngleHelper.rad(90), Direction.UP);
-			if (isActive) {
-				float time = AnimationTickHolder.getRenderTime(be.getLevel()) + partialTicks;
-				float spinAngle = AngleHelper.rad(time * 24f);
-				Direction spinAxis = axisAlongFirst ? Direction.EAST : Direction.SOUTH;
-				blade.rotateCentered(spinAngle, spinAxis);
-			}
-			blade.color(0xFFFFFF)
-				.light(light)
-				.renderInto(ms, buffer.getBuffer(RenderType.cutoutMipped()));
+			Direction spinAxis = axisAlongFirst ? Direction.EAST : Direction.SOUTH;
+			float spinAngle = isActive
+				? AngleHelper.rad((AnimationTickHolder.getRenderTime(be.getLevel()) + partialTicks) * 24f)
+				: 0f;
+			renderSawBlade(state, ms, buffer, light, axisAlongFirst, spinAxis, spinAngle, 0f);
+			renderSawBlade(state, ms, buffer, light, axisAlongFirst, spinAxis, spinAngle, AngleHelper.rad(90));
 		}
 		case SPOUT -> {
 			CachedBuffers.partial(AllPartialModels.SPOUT_TOP, state)
@@ -267,14 +269,32 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 		}
 	}
 
+	private static void renderSawBlade(BlockState state, PoseStack ms, MultiBufferSource buffer, int light,
+		boolean axisAlongFirst, Direction spinAxis, float spinAngle, float offsetAngle) {
+		SuperByteBuffer blade = CachedBuffers.partialFacing(AllPartialModels.SAW_BLADE_VERTICAL_INACTIVE, state);
+		if (axisAlongFirst)
+			blade.rotateCentered(AngleHelper.rad(90), Direction.UP);
+		float totalAngle = spinAngle + offsetAngle;
+		if (totalAngle != 0f)
+			blade.rotateCentered(totalAngle, spinAxis);
+		blade.color(0xFFFFFF)
+			.light(light)
+			.renderInto(ms, buffer.getBuffer(RenderType.cutoutMipped()));
+	}
+
 	private static void renderDeployerHeldItem(SpiderAssemblyTableBlockEntity be, ItemStack heldItem, PoseStack ms,
 		MultiBufferSource buffer, int light) {
 		ItemRenderer itemRenderer = Minecraft.getInstance()
 			.getItemRenderer();
 		BakedModel model = itemRenderer.getModel(heldItem, be.getLevel(), null, 0);
 		ms.pushPose();
-		ms.translate(0.5d, -0.25d, 0.5d);
-		ms.scale(0.5f, 0.5f, 0.5f);
+		ms.translate(0.5d, 0.5d, 0.5d);
+		ms.mulPose(Axis.YP.rotationDegrees(180));
+		ms.mulPose(Axis.XP.rotationDegrees(270));
+		ms.translate(0, 0, -11f / 16f);
+		boolean isBlockItem = (heldItem.getItem() instanceof BlockItem) && model.isGui3d();
+		float scale = isBlockItem ? 0.75f - 1f / 64f : 0.5f;
+		ms.scale(scale, scale, scale);
 		itemRenderer.render(heldItem, ItemDisplayContext.FIXED, false, ms, buffer, light, OverlayTexture.NO_OVERLAY,
 			model);
 		ms.popPose();
