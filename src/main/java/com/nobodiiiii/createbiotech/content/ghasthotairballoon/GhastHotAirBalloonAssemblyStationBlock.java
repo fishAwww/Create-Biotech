@@ -153,29 +153,12 @@ public class GhastHotAirBalloonAssemblyStationBlock extends BaseEntityBlock {
 			return;
 		ghast.startRiding(seat, true);
 
-		for (GhastHotAirBalloonEntity gc : contraptions) {
-			if (!gc.isAlive())
-				continue;
-			if (world.getBlockEntity(stationPos) instanceof GhastHotAirBalloonAssemblyStationBlockEntity station) {
-				float magnetY = (float) (gc.getY() + 1.0);
-				float depth = stationPos.getY() - magnetY;
-				station.snapToDisassembleOffset(depth);
-			}
-
-			double targetX = seatPos.getX() + 0.5;
-			double targetZ = seatPos.getZ() + 0.5;
-			gc.setPos(targetX, gc.getY(), targetZ);
-			gc.xo = targetX;
-			gc.zo = targetZ;
-			gc.xOld = targetX;
-			gc.zOld = targetZ;
-			gc.setDeltaMovement(0, 0, 0);
-			gc.yaw = yaw;
-			gc.prevYaw = yaw;
-			gc.targetYaw = yaw;
-
-			gc.disassemble();
-		}
+		if (contraptions.isEmpty())
+			return;
+		if (!(world.getBlockEntity(stationPos) instanceof GhastHotAirBalloonAssemblyStationBlockEntity station))
+			return;
+		for (GhastHotAirBalloonEntity gc : contraptions)
+			station.dockContraption(gc, yaw);
 	}
 
 	private static float getFacingYaw(BlockState state) {

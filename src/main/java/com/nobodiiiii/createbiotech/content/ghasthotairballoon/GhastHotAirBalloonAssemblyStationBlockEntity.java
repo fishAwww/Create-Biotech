@@ -65,40 +65,62 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 			be.sendUpdate();
 		}
 
-		if (be.extending) {
-			be.offset += SPEED;
-			int nextDepth = Mth.floor(be.offset) + 1;
-			BlockPos checkPos = pos.below(nextDepth);
-
-			if (level.isOutsideBuildHeight(checkPos)) {
-				be.holdHere();
-			} else {
-				BlockState checkState = level.getBlockState(checkPos);
-				if (!checkState.isAir()) {
-					boolean movable = BlockMovementChecks.isMovementNecessary(checkState, level, checkPos)
-						&& !BlockMovementChecks.isBrittle(checkState);
-					if (movable && be.tryAssemble(checkPos, nextDepth)) {
-						be.onAssembledSuccessfully();
-					} else {
-						be.holdHere();
-					}
-				} else {
-					int maxLength = AllConfigs.server().kinetics.maxRopeLength.get();
-					if (be.offset >= maxLength)
-						be.holdHere();
-				}
-			}
-		} else if (be.retracting) {
-			be.offset -= SPEED;
-			if (be.offset <= 0) {
-				be.offset = 0;
-				be.retracting = false;
-				be.sendUpdate();
-			}
-		}
+		if (be.extending)
+			be.tickExtension(level, pos);
+		else if (be.retracting)
+			be.tickRetraction();
 
 		if (level.getGameTime() % ATTRACT_PERIOD_TICKS == 0)
 			be.tickAutoAttract(level, pos, state);
+
+		be.tryAssembleIfReady(level, pos);
+	}
+
+	private void tickExtension(Level level, BlockPos pos) {
+		offset += SPEED;
+		int nextDepth = Mth.floor(offset) + 1;
+		BlockPos checkPos = pos.below(nextDepth);
+
+		if (level.isOutsideBuildHeight(checkPos)) {
+			holdHere();
+			return;
+		}
+		if (!level.getBlockState(checkPos).isAir()) {
+			holdHere();
+			return;
+		}
+		if (offset >= AllConfigs.server().kinetics.maxRopeLength.get())
+			holdHere();
+	}
+
+	private void tickRetraction() {
+		offset -= SPEED;
+		if (offset <= 0) {
+			offset = 0;
+			retracting = false;
+			sendUpdate();
+		}
+	}
+
+	private void tryAssembleIfReady(Level level, BlockPos pos) {
+		if (assemblyConsumed || retracting || offset <= 0f)
+			return;
+
+		int depth = Mth.floor(offset) + 1;
+		BlockPos anchorPos = pos.below(depth);
+		if (level.isOutsideBuildHeight(anchorPos))
+			return;
+
+		BlockState anchorState = level.getBlockState(anchorPos);
+		if (anchorState.isAir())
+			return;
+		if (!BlockMovementChecks.isMovementNecessary(anchorState, level, anchorPos))
+			return;
+		if (BlockMovementChecks.isBrittle(anchorState))
+			return;
+
+		if (tryAssemble(anchorPos, depth))
+			onAssembledSuccessfully();
 	}
 
 	private void tickAutoAttract(Level level, BlockPos pos, BlockState state) {
@@ -181,6 +203,31 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 		retracting = true;
 		assemblyConsumed = false;
 		sendUpdate();
+	}
+
+	public void dockContraption(GhastHotAirBalloonEntity contraption, float yaw) {
+		if (level == null || level.isClientSide)
+			return;
+		if (!contraption.isAlive())
+			return;
+
+		float magnetY = (float) (contraption.getY() + 1.0);
+		float depth = worldPosition.getY() - magnetY;
+		snapToDisassembleOffset(depth);
+
+		double targetX = worldPosition.getX() + 0.5;
+		double targetZ = worldPosition.getZ() + 0.5;
+		contraption.setPos(targetX, contraption.getY(), targetZ);
+		contraption.xo = targetX;
+		contraption.zo = targetZ;
+		contraption.xOld = targetX;
+		contraption.zOld = targetZ;
+		contraption.setDeltaMovement(0, 0, 0);
+		contraption.yaw = yaw;
+		contraption.prevYaw = yaw;
+		contraption.targetYaw = yaw;
+
+		contraption.disassemble();
 	}
 
 	private boolean tryAssemble(BlockPos anchorPos, int ropeLength) {

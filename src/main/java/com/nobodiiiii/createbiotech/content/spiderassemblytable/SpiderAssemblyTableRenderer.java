@@ -47,6 +47,9 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 	private static final float LEG_LENGTH_MODEL = 15.0f;
 	private static final float LEG_PIVOT_X_MODEL = 4.0f;
 	private static final int[] LEG_PIVOT_Z_MODEL = { -1, 0, 1, 2, -1, 0, 1, 2 };
+	private static final float DEPOT_X_MODEL = 0f;
+	private static final float DEPOT_Y_MODEL = 39f;
+	private static final float DEPOT_Z_MODEL = 0f;
 
 	private final SpiderModel<RenderSpider> spiderModel;
 	private RenderSpider cachedSpider;
@@ -200,38 +203,65 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 
 		spiderModel.setupAnim(spider, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 
+		int activeSlot = be.getActiveSlot();
+		ModelPart activeLeg = getAnimatedLeg(root, activeSlot);
+		if (activeLeg != null) {
+			float progress = be.getProcessingProgress(partialTicks);
+			float bend = Mth.sin(progress * Mth.PI) * ACTIVE_LEG_BEND;
+			boolean leftSide = activeSlot < 4;
+			activeLeg.zRot += leftSide ? bend : -bend;
+		}
+
 		for (int slot = 0; slot < SpiderAssemblyTableBlockEntity.LEG_COUNT; slot++) {
 			ModelPart leg = getAnimatedLeg(root, slot);
 			if (leg != null)
-				aimLegAtDepotCenter(leg, slot);
+				aimMachineAtDepot(leg, slot);
 		}
-
-		int activeSlot = be.getActiveSlot();
-		ModelPart activeLeg = getAnimatedLeg(root, activeSlot);
-		if (activeLeg == null)
-			return;
-
-		float progress = be.getProcessingProgress(partialTicks);
-		float bend = Mth.sin(progress * Mth.PI) * ACTIVE_LEG_BEND;
-		boolean leftSide = activeSlot < 4;
-		activeLeg.zRot += leftSide ? bend : -bend;
 	}
 
-	private static void aimLegAtDepotCenter(ModelPart leg, int slot) {
-		int pzm = LEG_PIVOT_Z_MODEL[slot];
-		float pz2 = pzm * pzm;
-		float myAbs = Mth.sqrt(
-			LEG_LENGTH_MODEL * LEG_LENGTH_MODEL - LEG_PIVOT_X_MODEL * LEG_PIVOT_X_MODEL - pz2);
+	private static void aimMachineAtDepot(ModelPart leg, int slot) {
 		boolean leftSide = slot < 4;
+		float sign = leftSide ? +1f : -1f;
 
-		leg.xRot = 0;
-		if (leftSide) {
-			leg.yRot = (float) Math.asin(pzm / LEG_LENGTH_MODEL);
-			leg.zRot = (float) Math.atan2(myAbs, -LEG_PIVOT_X_MODEL);
-		} else {
-			leg.yRot = (float) Math.asin(-pzm / LEG_LENGTH_MODEL);
-			leg.zRot = (float) Math.atan2(-myAbs, -LEG_PIVOT_X_MODEL);
-		}
+		float zRot = leg.zRot;
+		float yRot = leg.yRot;
+		float cz = Mth.cos(zRot);
+		float sz = Mth.sin(zRot);
+		float cy = Mth.cos(yRot);
+		float sy = Mth.sin(yRot);
+
+		float axisX = sign * cz * cy;
+		float axisY = sign * sz * cy;
+		float axisZ = -sign * sy;
+
+		float pivotX = sign * LEG_PIVOT_X_MODEL;
+		float pivotY = 15f;
+		float pivotZ = LEG_PIVOT_Z_MODEL[slot];
+
+		float tipX = pivotX + LEG_LENGTH_MODEL * axisX;
+		float tipY = pivotY + LEG_LENGTH_MODEL * axisY;
+		float tipZ = pivotZ + LEG_LENGTH_MODEL * axisZ;
+
+		float dx = DEPOT_X_MODEL - tipX;
+		float dy = DEPOT_Y_MODEL - tipY;
+		float dz = DEPOT_Z_MODEL - tipZ;
+
+		float along = dx * axisX + dy * axisY + dz * axisZ;
+		float perpX = dx - along * axisX;
+		float perpY = dy - along * axisY;
+		float perpZ = dz - along * axisZ;
+
+		float e0X = -sz;
+		float e0Y = cz;
+		float e0Z = 0f;
+		float e1X = cz * sy;
+		float e1Y = sz * sy;
+		float e1Z = cy;
+
+		float cosA = perpX * e0X + perpY * e0Y + perpZ * e0Z;
+		float sinA = perpX * e1X + perpY * e1Y + perpZ * e1Z;
+
+		leg.xRot = (float) Math.atan2(sinA, cosA);
 	}
 
 	private static ModelPart getAnimatedLeg(ModelPart root, int slot) {
