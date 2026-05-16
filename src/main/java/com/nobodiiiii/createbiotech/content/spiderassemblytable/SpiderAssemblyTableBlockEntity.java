@@ -10,6 +10,7 @@ import javax.annotation.Nullable;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllRecipeTypes;
+import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.api.stress.BlockStressValues;
 import com.simibubi.create.content.fluids.spout.SpoutBlockEntity;
 import com.simibubi.create.content.fluids.transfer.FillingRecipe;
@@ -24,8 +25,11 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.fluid.FluidIngredient;
 import com.simibubi.create.foundation.recipe.RecipeApplier;
 
+import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -43,6 +47,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
@@ -76,6 +81,9 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 	private MachineKind activeMachine;
 	private int processingTicksRemaining;
 	private int processingTicksTotal;
+	private boolean impactFiredThisCycle;
+	private boolean impactPending;
+	private ItemStack impactDisplayItem = ItemStack.EMPTY;
 
 	public SpiderAssemblyTableBlockEntity(BlockPos pos, BlockState state) {
 		super(CBBlockEntityTypes.SPIDER_ASSEMBLY_TABLE.get(), pos, state);
@@ -119,6 +127,13 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 		tag.putInt("ActiveMachine", activeMachine == null ? -1 : activeMachine.ordinal());
 		tag.putInt("ProcessingTicksRemaining", processingTicksRemaining);
 		tag.putInt("ProcessingTicksTotal", processingTicksTotal);
+		if (clientPacket && impactPending) {
+			tag.putBoolean("Impact", true);
+			if (!impactDisplayItem.isEmpty())
+				tag.put("ImpactItem", impactDisplayItem.serializeNBT());
+			impactPending = false;
+			impactDisplayItem = ItemStack.EMPTY;
+		}
 		super.write(tag, clientPacket);
 	}
 
@@ -137,6 +152,13 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 		processingTicksRemaining = tag.getInt("ProcessingTicksRemaining");
 		processingTicksTotal = tag.getInt("ProcessingTicksTotal");
 		super.read(tag, clientPacket);
+
+		if (clientPacket && tag.getBoolean("Impact")) {
+			ItemStack item = tag.contains("ImpactItem")
+				? ItemStack.of(tag.getCompound("ImpactItem"))
+				: ItemStack.EMPTY;
+			spawnImpactParticles(activeMachine, item);
+		}
 	}
 
 	@Override
@@ -221,7 +243,15 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 			return;
 
 		if (activeSlot >= 0) {
+			int previousRemaining = processingTicksRemaining;
 			processingTicksRemaining--;
+
+			int midpoint = processingTicksTotal / 2;
+			if (!impactFiredThisCycle && previousRemaining > midpoint && processingTicksRemaining <= midpoint) {
+				triggerImpact(depot.get());
+				impactFiredThisCycle = true;
+			}
+
 			if (processingTicksRemaining > 0)
 				return;
 
@@ -230,12 +260,81 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 			activeMachine = null;
 			processingTicksRemaining = 0;
 			processingTicksTotal = 0;
+			impactFiredThisCycle = false;
 			setChanged();
 			sendData();
 			return;
 		}
 
 		tryStartProcess(depot.get());
+	}
+
+	private void triggerImpact(DepotBlockEntity depot) {
+		if (level == null || activeMachine == null)
+			return;
+		playMachineSound();
+		impactDisplayItem = resolveImpactItem(depot).copy();
+		impactPending = true;
+		sendData();
+	}
+
+	private ItemStack resolveImpactItem(DepotBlockEntity depot) {
+		if (activeMachine == MachineKind.DEPLOYER && activeSlot >= 0) {
+			ItemStack held = inventory.getStackInSlot(ITEM_CACHE_SLOT_START + activeSlot);
+			if (!held.isEmpty())
+				return held;
+		}
+		return depot.getHeldItem();
+	}
+
+	private void playMachineSound() {
+		if (level == null || activeMachine == null)
+			return;
+		float speedFactor = Math.abs(getSpeed()) / 1024f;
+		switch (activeMachine) {
+		case PRESS -> AllSoundEvents.MECHANICAL_PRESS_ACTIVATION.playOnServer(level, worldPosition, 0.5f,
+			0.75f + speedFactor);
+		case SAW -> AllSoundEvents.SAW_ACTIVATE_WOOD.playOnServer(level, worldPosition, 0.75f,
+			0.85f + 0.15f * level.random.nextFloat());
+		case SPOUT -> AllSoundEvents.SPOUTING.playOnServer(level, worldPosition, 0.75f,
+			0.9f + 0.2f * level.random.nextFloat());
+		case DEPLOYER -> AllSoundEvents.CRAFTER_CLICK.playOnServer(level, worldPosition, 0.75f,
+			0.85f + 0.15f * level.random.nextFloat());
+		}
+	}
+
+	private void spawnImpactParticles(MachineKind machine, ItemStack item) {
+		if (level == null || !level.isClientSide || machine == null || item.isEmpty())
+			return;
+
+		Vec3 origin = Vec3.atCenterOf(worldPosition.below(2)).add(0, 7 / 16f, 0);
+		int amount;
+		float upward;
+		switch (machine) {
+		case PRESS -> {
+			amount = 16;
+			upward = 0.18f;
+		}
+		case SAW -> {
+			amount = 12;
+			upward = 0.25f;
+		}
+		case SPOUT -> {
+			amount = 8;
+			upward = 0.04f;
+		}
+		default -> {
+			amount = 6;
+			upward = 0.1f;
+		}
+		}
+
+		for (int i = 0; i < amount; i++) {
+			Vec3 motion = VecHelper.offsetRandomly(Vec3.ZERO, level.random, 0.125f).multiply(1, 0, 1);
+			motion = motion.add(0, upward, 0);
+			level.addParticle(new ItemParticleOption(ParticleTypes.ITEM, item),
+				origin.x, origin.y, origin.z, motion.x, motion.y, motion.z);
+		}
 	}
 
 	private Optional<DepotBlockEntity> getDepot() {
@@ -266,6 +365,7 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 			activeMachine = kind;
 			processingTicksTotal = Math.max(1, plan.get().duration());
 			processingTicksRemaining = processingTicksTotal;
+			impactFiredThisCycle = false;
 			nextSlot = (slot + 1) % LEG_COUNT;
 			setChanged();
 			sendData();
@@ -371,6 +471,7 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 
 		ItemStack newHeld = nonEmptyOutputs.isEmpty() ? ItemStack.EMPTY : nonEmptyOutputs.remove(0);
 		depot.setHeldItem(newHeld);
+		depot.notifyUpdate();
 
 		for (ItemStack extra : nonEmptyOutputs)
 			dropStackNearDepot(depot.getBlockPos(), extra);
