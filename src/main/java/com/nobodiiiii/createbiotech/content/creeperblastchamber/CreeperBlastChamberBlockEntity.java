@@ -52,17 +52,25 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.entity.monster.WitherSkeleton;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.entity.monster.AbstractSkeleton;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -77,6 +85,7 @@ import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.items.wrapper.RecipeWrapper;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements IHaveGoggleInformation {
 
@@ -102,7 +111,9 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 	private static final int OVERLOAD_THRESHOLD_RPM = 128;
 	private static final int OVERLOAD_POINTS_CAP = OVERLOAD_THRESHOLD_RPM * 64;
 	private static final int OVERLOAD_TNT_EQUIVALENT_PER_CREEPER = 4;
+	private static final int CHARGED_CREEPER_EQUIVALENT_MULTIPLIER = 2;
 	private static final float TNT_EXPLOSION_POWER = 4f;
+	private static final float HIGH_PRESSURE_COAL_TO_DIAMOND_CHANCE = 0.25f;
 	private static final float CLIENT_PRESS_EFFECT_START_OFFSET = 0.4f;
 	private static final float CLIENT_RETURN_EFFECT_ARM_THRESHOLD = 0.95f;
 	private static final float CLIENT_PRESS_RETURN_EPSILON = 0.001f;
@@ -884,14 +895,14 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 			return;
 
 		pressCycleProcessed = true;
-		int workableCreeperCount = countWorkableMarkedCreepers();
-		if (workableCreeperCount <= 0)
+		CreeperCountSummary workableCreepers = summarizeWorkableMarkedCreepers();
+		if (workableCreepers.totalCount() <= 0)
 			return;
 
-		if (applyOverloadFromPress(press, workableCreeperCount))
+		if (applyOverloadFromPress(press, workableCreepers))
 			return;
 
-		processMarkedCreepersCycle(workableCreeperCount);
+		processMarkedCreepersCycle(workableCreepers);
 	}
 
 	private boolean hasUnworkablePresses(List<MechanicalPressBlockEntity> presses) {
@@ -908,9 +919,9 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 		return false;
 	}
 
-	private boolean applyOverloadFromPress(MechanicalPressBlockEntity press, int markedCreeperCount) {
+	private boolean applyOverloadFromPress(MechanicalPressBlockEntity press, CreeperCountSummary creeperCounts) {
 		if (overloadPoints >= OVERLOAD_POINTS_CAP) {
-			triggerOverload(markedCreeperCount);
+			triggerOverload(creeperCounts);
 			return true;
 		}
 
@@ -929,18 +940,38 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 		return false;
 	}
 
-	private void triggerOverload(int markedCreeperCount) {
+	private void triggerOverload(CreeperCountSummary creeperCounts) {
 		Level level = getLevel();
 		if (level == null || level.isClientSide || !structureValid || structureOrigin == null)
 			return;
 
+		Vec3 center = Vec3.atCenterOf(structureOrigin.offset(structureSize / 2, 1, structureSize / 2));
 		setOverloadPoints(0);
-		if (markedCreeperCount <= 0)
+		int effectiveExplosionCount = creeperCounts.getExplosionEquivalentCount();
+		if (effectiveExplosionCount <= 0)
 			return;
 
-		Vec3 center = Vec3.atCenterOf(structureOrigin.offset(structureSize / 2, 1, structureSize / 2));
-		float explosionPower = markedCreeperCount * OVERLOAD_TNT_EQUIVALENT_PER_CREEPER * TNT_EXPLOSION_POWER;
+		destroyChamberStructureForOverload(level);
+		float explosionPower = effectiveExplosionCount * OVERLOAD_TNT_EQUIVALENT_PER_CREEPER * TNT_EXPLOSION_POWER;
 		level.explode(null, center.x, center.y, center.z, explosionPower, Level.ExplosionInteraction.TNT);
+	}
+
+	private void destroyChamberStructureForOverload(Level level) {
+		if (!structureValid || structureOrigin == null)
+			return;
+
+		List<BlockPos> positionsToClear = new ArrayList<>(structureSize * structureSize * 4);
+		for (int x = 0; x < structureSize; x++) {
+			for (int y = 0; y <= 3; y++) {
+				for (int z = 0; z < structureSize; z++)
+					positionsToClear.add(structureOrigin.offset(x, y, z));
+			}
+		}
+
+		for (BlockPos pos : positionsToClear) {
+			if (!level.getBlockState(pos).isAir())
+				level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+		}
 	}
 
 	private void setOverloadPoints(int overloadPoints) {
@@ -953,8 +984,11 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 			notifyUpdate();
 	}
 
-	private void processMarkedCreepersCycle(int markedCreeperCount) {
-		if (markedCreeperCount <= 0)
+	private void processMarkedCreepersCycle(CreeperCountSummary creeperCounts) {
+		ChamberCreeperKind chamberKind = getHeldCreeperKind();
+		boolean highPressure = chamberKind == ChamberCreeperKind.CHARGED || chamberKind == ChamberCreeperKind.MIXED;
+		int operations = highPressure ? creeperCounts.chargedCount() : creeperCounts.totalCount();
+		if (operations <= 0)
 			return;
 
 		IItemHandler inputHandler = getVaultItemHandler(inputVaultController);
@@ -962,8 +996,10 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 		if (inputHandler == null || outputHandler == null)
 			return;
 
-		for (int i = 0; i < markedCreeperCount; i++) {
-			ProcessingAttemptResult result = processNextVaultStack(inputHandler, outputHandler);
+		for (int i = 0; i < operations; i++) {
+			ProcessingAttemptResult result = highPressure
+				? processNextHighPressureVaultItem(inputHandler, outputHandler)
+				: processNextVaultStack(inputHandler, outputHandler);
 			if (result == ProcessingAttemptResult.NO_INPUT || result == ProcessingAttemptResult.BLOCKED_OUTPUT)
 				return;
 		}
@@ -993,6 +1029,16 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 		return ProcessingAttemptResult.NO_INPUT;
 	}
 
+	private ProcessingAttemptResult processNextHighPressureVaultItem(IItemHandler inputHandler, IItemHandler outputHandler) {
+		for (int slot = 0; slot < inputHandler.getSlots(); slot++) {
+			ItemStack stackInSlot = inputHandler.getStackInSlot(slot);
+			if (stackInSlot.isEmpty())
+				continue;
+			return processHighPressureVaultItem(inputHandler, outputHandler, slot, stackInSlot.copy());
+		}
+		return ProcessingAttemptResult.NO_INPUT;
+	}
+
 	private ProcessingAttemptResult processVaultStack(IItemHandler inputHandler, IItemHandler outputHandler, int slot,
 		ItemStack stackToProcess) {
 		Optional<ProcessingRecipe<RecipeWrapper>> recipe = findCrushingRecipe(stackToProcess);
@@ -1007,6 +1053,26 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 
 		ItemStack extracted = inputHandler.extractItem(slot, stackToProcess.getCount(), false);
 		if (extracted.getCount() != stackToProcess.getCount())
+			return ProcessingAttemptResult.NO_INPUT;
+
+		insertAllOutputs(outputHandler, outputs);
+		return ProcessingAttemptResult.PROCESSED;
+	}
+
+	private ProcessingAttemptResult processHighPressureVaultItem(IItemHandler inputHandler, IItemHandler outputHandler,
+		int slot, ItemStack stackToProcess) {
+		if (stackToProcess.isEmpty())
+			return ProcessingAttemptResult.NO_INPUT;
+
+		ItemStack singleInput = stackToProcess.copy();
+		singleInput.setCount(1);
+
+		List<ItemStack> outputs = rollHighPressureResults(singleInput);
+		if (!canFullyInsertAll(outputHandler, outputs))
+			return ProcessingAttemptResult.BLOCKED_OUTPUT;
+
+		ItemStack extracted = inputHandler.extractItem(slot, 1, false);
+		if (extracted.getCount() != 1)
 			return ProcessingAttemptResult.NO_INPUT;
 
 		insertAllOutputs(outputHandler, outputs);
@@ -1033,6 +1099,27 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 		}
 		if (input.hasCraftingRemainingItem())
 			ItemHelper.addToList(input.getCraftingRemainingItem(), outputs);
+		return outputs;
+	}
+
+	private List<ItemStack> rollHighPressureResults(ItemStack input) {
+		List<ItemStack> outputs = new ArrayList<>();
+		Level level = getLevel();
+		if (level == null || input.isEmpty())
+			return outputs;
+
+		if (input.is(Items.COAL)) {
+			if (level.random.nextFloat() < HIGH_PRESSURE_COAL_TO_DIAMOND_CHANCE)
+				outputs.add(new ItemStack(Items.DIAMOND));
+			return outputs;
+		}
+
+		if (!CapturedEntityBoxHelper.hasCapturedEntity(input))
+			return outputs;
+
+		ItemStack mobHead = getCapturedMobHead(input);
+		if (!mobHead.isEmpty())
+			outputs.add(mobHead);
 		return outputs;
 	}
 
@@ -1587,15 +1674,50 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 			.size();
 	}
 
-	private int countWorkableMarkedCreepers() {
-		int count = 0;
+	private CreeperCountSummary summarizeWorkableMarkedCreepers() {
+		int normalCount = 0;
+		int chargedCount = 0;
 		for (BlockPos packagerPos : getPackagerPositions()) {
 			if (isPackagerAppearing(packagerPos) || isPackagerPackaging(packagerPos))
 				continue;
-			if (getMarkedCreeperAtPackager(packagerPos) != null)
-				count++;
+			Creeper creeper = getMarkedCreeperAtPackager(packagerPos);
+			if (creeper == null)
+				continue;
+			if (creeper.isPowered())
+				chargedCount++;
+			else
+				normalCount++;
 		}
-		return count;
+		return new CreeperCountSummary(normalCount, chargedCount);
+	}
+
+	private ChamberCreeperKind getHeldCreeperKind() {
+		ChamberCreeperKind kind = ChamberCreeperKind.NONE;
+		for (PendingUnpack pending : pendingUnpacks)
+			kind = kind.merge(getBoxedCreeperKind(pending.boxStack));
+		for (PendingPackaging pending : pendingPackagings)
+			kind = kind.merge(getBoxedCreeperKind(pending.boxStack));
+		for (ReadyOutput readyOutput : readyOutputs)
+			kind = kind.merge(getBoxedCreeperKind(readyOutput.boxStack));
+		for (BlockPos packagerPos : getPackagerPositions()) {
+			Creeper creeper = getMarkedCreeperAtPackager(packagerPos);
+			if (creeper != null)
+				kind = kind.merge(getCreeperKind(creeper));
+		}
+		return kind;
+	}
+
+	private boolean canAcceptIncomingCreeperBox(ItemStack stack) {
+		ChamberCreeperKind incomingKind = getBoxedCreeperKind(stack);
+		if (incomingKind == ChamberCreeperKind.NONE || incomingKind == ChamberCreeperKind.MIXED)
+			return false;
+
+		ChamberCreeperKind heldKind = getHeldCreeperKind();
+		if (heldKind == ChamberCreeperKind.NONE)
+			return true;
+		if (heldKind == ChamberCreeperKind.NORMAL)
+			return incomingKind == ChamberCreeperKind.NORMAL;
+		return incomingKind == ChamberCreeperKind.CHARGED;
 	}
 
 	private boolean isPackagerSlotEmpty(BlockPos packagerPos) {
@@ -1637,6 +1759,8 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 		tryDetectStructure();
 		if (!structureValid)
 			return new InsertResult(false, stack);
+		if (!canAcceptIncomingCreeperBox(stack))
+			return new InsertResult(false, stack);
 
 		BlockPos targetPackager = findAvailablePackagerForNewInput();
 		if (targetPackager == null)
@@ -1660,6 +1784,50 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 	private boolean isValidLargeCreeperBox(ItemStack stack) {
 		return stack.is(CBItems.LARGE_CARDBOARD_BOX.get())
 			&& CapturedEntityBoxHelper.containsEntityType(stack, EntityType.CREEPER);
+	}
+
+	private ChamberCreeperKind getCreeperKind(Creeper creeper) {
+		return creeper.isPowered() ? ChamberCreeperKind.CHARGED : ChamberCreeperKind.NORMAL;
+	}
+
+	private ChamberCreeperKind getBoxedCreeperKind(ItemStack stack) {
+		Level level = getLevel();
+		if (level != null) {
+			Entity entity = CapturedEntityBoxHelper.createCapturedEntity(stack, level);
+			if (entity instanceof Creeper creeper)
+				return getCreeperKind(creeper);
+		}
+
+		CompoundTag boxTag = stack.getTag();
+		if (boxTag == null || !boxTag.contains("CapturedEntity", Tag.TAG_COMPOUND))
+			return ChamberCreeperKind.NONE;
+
+		CompoundTag entityData = boxTag.getCompound("CapturedEntity");
+		ResourceLocation entityId = ResourceLocation.tryParse(entityData.getString("id"));
+		if (entityId == null || !entityId.equals(ForgeRegistries.ENTITY_TYPES.getKey(EntityType.CREEPER)))
+			return ChamberCreeperKind.NONE;
+		return entityData.getBoolean("powered") ? ChamberCreeperKind.CHARGED : ChamberCreeperKind.NORMAL;
+	}
+
+	private ItemStack getCapturedMobHead(ItemStack capturedEntityBox) {
+		Level level = getLevel();
+		if (level == null)
+			return ItemStack.EMPTY;
+
+		Entity entity = CapturedEntityBoxHelper.createCapturedEntity(capturedEntityBox, level);
+		if (entity instanceof WitherSkeleton)
+			return new ItemStack(Items.WITHER_SKELETON_SKULL);
+		if (entity instanceof AbstractSkeleton)
+			return new ItemStack(Items.SKELETON_SKULL);
+		if (entity instanceof Zombie)
+			return new ItemStack(Items.ZOMBIE_HEAD);
+		if (entity instanceof Piglin)
+			return new ItemStack(Items.PIGLIN_HEAD);
+		if (entity instanceof Creeper)
+			return new ItemStack(Items.CREEPER_HEAD);
+		if (entity instanceof EnderDragon)
+			return new ItemStack(Items.DRAGON_HEAD);
+		return ItemStack.EMPTY;
 	}
 
 	@Nullable
@@ -2570,6 +2738,31 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 				BlockPos.of(tag.getLong("PackagerPos")),
 				ItemStack.of(tag.getCompound("Box")),
 				tag.getInt("TicksRemaining"));
+		}
+	}
+
+	private enum ChamberCreeperKind {
+		NONE,
+		NORMAL,
+		CHARGED,
+		MIXED;
+
+		private ChamberCreeperKind merge(ChamberCreeperKind other) {
+			if (other == NONE || other == this)
+				return this;
+			if (this == NONE)
+				return other;
+			return MIXED;
+		}
+	}
+
+	private record CreeperCountSummary(int normalCount, int chargedCount) {
+		private int totalCount() {
+			return normalCount + chargedCount;
+		}
+
+		private int getExplosionEquivalentCount() {
+			return normalCount + chargedCount * CHARGED_CREEPER_EQUIVALENT_MULTIPLIER;
 		}
 	}
 
