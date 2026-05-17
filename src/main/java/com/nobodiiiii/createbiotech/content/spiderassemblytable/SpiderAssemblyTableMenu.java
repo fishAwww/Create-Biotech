@@ -22,7 +22,14 @@ public class SpiderAssemblyTableMenu extends AbstractContainerMenu {
 	public static final int PLAYER_INVENTORY_END = PLAYER_INVENTORY_START + 27;
 	public static final int HOTBAR_START = PLAYER_INVENTORY_END;
 	public static final int HOTBAR_END = HOTBAR_START + 9;
-	public static final int HYBRID_SLOT_ROW_Y = 40;
+
+	public static final int SLOT_X_START = 12;
+	public static final int SLOT_X_PITCH = 24;
+	public static final int MACHINE_SLOT_ROW_Y = 23;
+	public static final int HYBRID_SLOT_ROW_Y = 41;
+	public static final int LOCK_ROW_Y = 86;
+	public static final int PLAYER_INVENTORY_X = 28;
+	public static final int PLAYER_INVENTORY_Y = 131;
 
 	private final SpiderAssemblyTableBlockEntity blockEntity;
 
@@ -35,21 +42,21 @@ public class SpiderAssemblyTableMenu extends AbstractContainerMenu {
 		this.blockEntity = blockEntity;
 
 		IItemHandler inventory = blockEntity.getInventory();
-		int xStart = 17;
 		for (int i = 0; i < SpiderAssemblyTableBlockEntity.LEG_COUNT; i++)
 			addSlot(new MachineSlot(inventory, SpiderAssemblyTableBlockEntity.MACHINE_SLOT_START + i,
-				xStart + i * 18, 18));
+				SLOT_X_START + i * SLOT_X_PITCH, MACHINE_SLOT_ROW_Y));
 		for (int i = 0; i < SpiderAssemblyTableBlockEntity.LEG_COUNT; i++)
 			addSlot(new HybridSlot(inventory, SpiderAssemblyTableBlockEntity.HYBRID_SLOT_START + i,
-				xStart + i * 18, HYBRID_SLOT_ROW_Y, blockEntity, i));
+				SLOT_X_START + i * SLOT_X_PITCH, HYBRID_SLOT_ROW_Y, blockEntity, i));
 
 		for (int row = 0; row < 3; row++)
 			for (int col = 0; col < 9; col++)
 				addSlot(new net.minecraft.world.inventory.Slot(playerInventory, col + row * 9 + 9,
-					8 + col * 18, 96 + row * 18));
+					PLAYER_INVENTORY_X + col * 18, PLAYER_INVENTORY_Y + row * 18));
 
 		for (int col = 0; col < 9; col++)
-			addSlot(new net.minecraft.world.inventory.Slot(playerInventory, col, 8 + col * 18, 154));
+			addSlot(new net.minecraft.world.inventory.Slot(playerInventory, col,
+				PLAYER_INVENTORY_X + col * 18, PLAYER_INVENTORY_Y + 58));
 	}
 
 	public SpiderAssemblyTableBlockEntity getBlockEntity() {

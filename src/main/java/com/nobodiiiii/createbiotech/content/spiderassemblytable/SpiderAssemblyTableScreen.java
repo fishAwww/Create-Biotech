@@ -8,12 +8,14 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.nobodiiiii.createbiotech.CreateBiotech;
+import com.simibubi.create.foundation.gui.AllGuiTextures;
+import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -28,75 +30,63 @@ import net.minecraftforge.fluids.capability.templates.FluidTank;
 
 import org.joml.Matrix4f;
 
-public class SpiderAssemblyTableScreen extends AbstractContainerScreen<SpiderAssemblyTableMenu> {
+public class SpiderAssemblyTableScreen extends AbstractSimiContainerScreen<SpiderAssemblyTableMenu> {
 
-	private static final int PANEL_COLOR = 0xE01B1B1B;
-	private static final int BORDER_COLOR = 0xFF5D5D5D;
-	private static final int SLOT_COLOR = 0xFF2C2C2C;
-	private static final int SLOT_BORDER_COLOR = 0xFF777777;
-	private static final int LOCK_ROW_Y = SpiderAssemblyTableMenu.HYBRID_SLOT_ROW_Y + 20;
-	private static final int LOCK_BUTTON_WIDTH = 16;
-	private static final int LOCK_BUTTON_HEIGHT = 10;
-	private static final int LOCK_BG_UNLOCKED = 0xFF1F1F1F;
-	private static final int LOCK_BG_LOCKED = 0xFF3A2E0E;
+	private static final ResourceLocation BACKGROUND =
+		new ResourceLocation(CreateBiotech.MOD_ID, "textures/gui/spider_assembly_table.png");
+	private static final int BG_WIDTH = 216;
+	private static final int BG_HEIGHT = 109;
+
+	private static final int LOCK_BUTTON_SIZE = 16;
+	private static final int LOCK_BG_UNLOCKED = 0x55202020;
+	private static final int LOCK_BG_LOCKED = 0xCC4A3A12;
+	private static final int LOCK_BG_HOVER = 0x553A3A3A;
 	private static final int LOCK_BORDER_UNLOCKED = 0xFF555555;
 	private static final int LOCK_BORDER_LOCKED = 0xFFE6B33A;
-	private static final int LOCK_BORDER_HOVER = 0xFFE0E0E0;
+	private static final int LOCK_BORDER_HOVER = 0xFFFFFFFF;
+	private static final int LOCK_GLYPH_UNLOCKED = 0xFF888888;
+	private static final int LOCK_GLYPH_LOCKED = 0xFFE6B33A;
 
 	public SpiderAssemblyTableScreen(SpiderAssemblyTableMenu menu, Inventory playerInventory, Component title) {
 		super(menu, playerInventory, title);
-		imageWidth = 176;
-		imageHeight = 180;
-		inventoryLabelY = 86;
 	}
 
 	@Override
 	protected void init() {
+		setWindowSize(BG_WIDTH, BG_HEIGHT + 4 + AllGuiTextures.PLAYER_INVENTORY.getHeight());
 		super.init();
+
 		for (int i = 0; i < SpiderAssemblyTableBlockEntity.LEG_COUNT; i++) {
 			final int slotIdx = i;
-			int x = leftPos + 17 + i * 18;
-			int y = topPos + LOCK_ROW_Y;
+			int x = leftPos + SpiderAssemblyTableMenu.SLOT_X_START + i * SpiderAssemblyTableMenu.SLOT_X_PITCH;
+			int y = topPos + SpiderAssemblyTableMenu.LOCK_ROW_Y;
 			addRenderableWidget(new LockButton(x, y, slotIdx,
 				b -> Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, slotIdx)));
 		}
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics);
-		super.render(graphics, mouseX, mouseY, partialTick);
-		renderFluidOverlayTooltips(graphics, mouseX, mouseY);
-		renderTooltip(graphics, mouseX, mouseY);
-	}
-
-	@Override
 	protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-		RenderSystem.enableBlend();
-		int left = leftPos;
-		int top = topPos;
-		graphics.fill(left, top, left + imageWidth, top + imageHeight, PANEL_COLOR);
-		drawBorder(graphics, left, top, imageWidth, imageHeight, BORDER_COLOR);
+		int invX = getLeftOfCentered(AllGuiTextures.PLAYER_INVENTORY.getWidth());
+		int invY = topPos + BG_HEIGHT + 4;
+		renderPlayerInventory(graphics, invX, invY);
 
-		menu.slots.forEach(slot -> drawSlotBackground(graphics, left + slot.x - 1, top + slot.y - 1));
-		drawHybridContents(graphics, left, top);
-		RenderSystem.disableBlend();
+		graphics.blit(BACKGROUND, leftPos, topPos, 0, 0, BG_WIDTH, BG_HEIGHT, BG_WIDTH, BG_HEIGHT);
+
+		graphics.drawString(font, title, leftPos + 15, topPos + 5, 0xFFE6E6E6, false);
+
+		drawHybridContents(graphics, leftPos, topPos);
 	}
 
 	@Override
-	protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-		graphics.drawString(font, title, titleLabelX, titleLabelY, 0xE6E6E6, false);
-		graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xBDBDBD, false);
-	}
-
-	private void drawSlotBackground(GuiGraphics graphics, int x, int y) {
-		graphics.fill(x, y, x + 18, y + 18, SLOT_BORDER_COLOR);
-		graphics.fill(x + 1, y + 1, x + 17, y + 17, SLOT_COLOR);
+	protected void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+		renderFluidOverlayTooltips(graphics, mouseX, mouseY);
+		super.renderTooltip(graphics, mouseX, mouseY);
 	}
 
 	private void drawHybridContents(GuiGraphics graphics, int left, int top) {
 		for (int i = 0; i < SpiderAssemblyTableBlockEntity.LEG_COUNT; i++) {
-			int x = left + 17 + i * 18;
+			int x = left + SpiderAssemblyTableMenu.SLOT_X_START + i * SpiderAssemblyTableMenu.SLOT_X_PITCH;
 			int y = top + SpiderAssemblyTableMenu.HYBRID_SLOT_ROW_Y;
 
 			FluidTank tank = menu.getBlockEntity().getFluidTank(i);
@@ -150,7 +140,7 @@ public class SpiderAssemblyTableScreen extends AbstractContainerScreen<SpiderAss
 			if (fluid.isEmpty())
 				continue;
 
-			int x = leftPos + 17 + i * 18;
+			int x = leftPos + SpiderAssemblyTableMenu.SLOT_X_START + i * SpiderAssemblyTableMenu.SLOT_X_PITCH;
 			int y = topPos + SpiderAssemblyTableMenu.HYBRID_SLOT_ROW_Y;
 			if (mouseX < x || mouseX >= x + 16 || mouseY < y || mouseY >= y + 16)
 				continue;
@@ -229,7 +219,7 @@ public class SpiderAssemblyTableScreen extends AbstractContainerScreen<SpiderAss
 		private final OnPress onPress;
 
 		LockButton(int x, int y, int hybridIndex, OnPress onPress) {
-			super(x, y, LOCK_BUTTON_WIDTH, LOCK_BUTTON_HEIGHT, Component.empty());
+			super(x, y, LOCK_BUTTON_SIZE, LOCK_BUTTON_SIZE, Component.empty());
 			this.hybridIndex = hybridIndex;
 			this.onPress = onPress;
 		}
@@ -243,16 +233,17 @@ public class SpiderAssemblyTableScreen extends AbstractContainerScreen<SpiderAss
 		public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 			SpiderAssemblyTableBlockEntity be = menu.getBlockEntity();
 			boolean locked = be.isHybridSlotLocked(hybridIndex);
-			int bg = locked ? LOCK_BG_LOCKED : LOCK_BG_UNLOCKED;
-			int border = isHoveredOrFocused() ? LOCK_BORDER_HOVER : (locked ? LOCK_BORDER_LOCKED : LOCK_BORDER_UNLOCKED);
+			boolean hover = isHoveredOrFocused();
+			int bg = locked ? LOCK_BG_LOCKED : (hover ? LOCK_BG_HOVER : LOCK_BG_UNLOCKED);
+			int border = hover ? LOCK_BORDER_HOVER : (locked ? LOCK_BORDER_LOCKED : LOCK_BORDER_UNLOCKED);
 
-			graphics.fill(getX(), getY(), getX() + width, getY() + height, bg);
+			graphics.fill(getX() + 1, getY() + 1, getX() + width - 1, getY() + height - 1, bg);
 			drawBorder(graphics, getX(), getY(), width, height, border);
-			drawLockGlyph(graphics, getX() + width / 2 - 3, getY() + 2, locked);
+			drawLockGlyph(graphics, getX() + width / 2 - 3, getY() + height / 2 - 4, locked);
 		}
 
 		private void drawLockGlyph(GuiGraphics graphics, int x, int y, boolean locked) {
-			int color = locked ? 0xFFE6B33A : 0xFF888888;
+			int color = locked ? LOCK_GLYPH_LOCKED : LOCK_GLYPH_UNLOCKED;
 			graphics.fill(x + 1, y + 2, x + 6, y + 7, color);
 			graphics.fill(x + 2, y, x + 5, y + 1, color);
 			graphics.fill(x + 1, y + 1, x + 2, y + 2, color);
