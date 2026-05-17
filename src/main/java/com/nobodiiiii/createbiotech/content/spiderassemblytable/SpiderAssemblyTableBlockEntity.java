@@ -802,11 +802,16 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 
 			FluidStack remaining = resource.copy();
 			int filled = fillTanks(remaining, action, false);
-			remaining.setAmount(resource.getAmount() - filled);
+			int leftover = resource.getAmount() - filled;
+			if (leftover <= 0)
+				return filled;
+			remaining.setAmount(leftover);
 			return filled + fillTanks(remaining, action, true);
 		}
 
 		private int fillTanks(FluidStack resource, FluidAction action, boolean emptyOnly) {
+			if (resource.isEmpty())
+				return 0;
 			int filled = 0;
 			for (int i = 0; i < fluidTanks.length; i++) {
 				FluidTank tank = fluidTanks[i];
@@ -814,6 +819,8 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 					continue;
 				if (emptyOnly != tank.getFluid().isEmpty())
 					continue;
+				if (filled >= resource.getAmount())
+					break;
 				FluidStack attempt = resource.copy();
 				attempt.shrink(filled);
 				if (attempt.isEmpty())
