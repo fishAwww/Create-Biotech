@@ -5,14 +5,16 @@ import com.simibubi.create.content.kinetics.transmission.SplitShaftBlockEntity;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 public class SlimeClutchBlockEntity extends SplitShaftBlockEntity {
 
 	private boolean pendingStateUpdate;
-	private float stressAtTrip;
+	private boolean processingTransition;
+	private boolean baselineRecorded;
+	private float baselineCapacity;
+	private float baselineStress;
 
 	public SlimeClutchBlockEntity(BlockPos pos, BlockState state) {
 		super(CBBlockEntityTypes.SLIME_CLUTCH.get(), pos, state);
@@ -30,15 +32,22 @@ public class SlimeClutchBlockEntity extends SplitShaftBlockEntity {
 	@Override
 	public void updateFromNetwork(float maxStress, float currentStress, int networkSize) {
 		super.updateFromNetwork(maxStress, currentStress, networkSize);
-		if (level == null || level.isClientSide)
+		if (level == null || level.isClientSide || processingTransition)
 			return;
 
 		boolean powered = getBlockState().getValue(BlockStateProperties.POWERED);
 		if (powered) {
-			if (maxStress > stressAtTrip)
+			if (networkSize == 0)
+				return;
+			if (!baselineRecorded) {
+				baselineRecorded = true;
+				baselineCapacity = maxStress;
+				baselineStress = currentStress;
+				return;
+			}
+			if (maxStress != baselineCapacity || currentStress != baselineStress)
 				pendingStateUpdate = true;
 		} else if (isOverStressed()) {
-			stressAtTrip = currentStress;
 			pendingStateUpdate = true;
 		}
 	}
@@ -52,33 +61,17 @@ public class SlimeClutchBlockEntity extends SplitShaftBlockEntity {
 
 		BlockState state = getBlockState();
 		boolean powered = state.getValue(BlockStateProperties.POWERED);
-		boolean shouldBePowered;
-		if (powered)
-			shouldBePowered = stressAtTrip >= getMaxStress();
-		else
-			shouldBePowered = isOverStressed();
+		boolean shouldBePowered = !powered;
 
-		if (powered == shouldBePowered)
-			return;
+		processingTransition = true;
+		try {
+			if (state.getBlock() instanceof SlimeClutchBlock clutch)
+				clutch.detachKinetics(level, getBlockPos(), true);
+			level.setBlock(getBlockPos(), state.setValue(BlockStateProperties.POWERED, shouldBePowered), 2 | 16);
+		} finally {
+			processingTransition = false;
+		}
 
-		if (state.getBlock() instanceof SlimeClutchBlock clutch)
-			clutch.detachKinetics(level, getBlockPos(), true);
-		level.setBlock(getBlockPos(), state.setValue(BlockStateProperties.POWERED, shouldBePowered), 2 | 16);
-	}
-
-	private float getMaxStress() {
-		return capacity;
-	}
-
-	@Override
-	protected void write(CompoundTag compound, boolean clientPacket) {
-		super.write(compound, clientPacket);
-		compound.putFloat("StressAtTrip", stressAtTrip);
-	}
-
-	@Override
-	protected void read(CompoundTag compound, boolean clientPacket) {
-		super.read(compound, clientPacket);
-		stressAtTrip = compound.getFloat("StressAtTrip");
+		baselineRecorded = false;
 	}
 }
