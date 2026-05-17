@@ -130,6 +130,7 @@ public class CreateBiotechClient {
 			SimpleEntityVisualizer.<GhastHotAirBalloonEntity>builder(CBEntityTypes.GHAST_HOT_AIR_BALLOON.get())
 				.factory(ContraptionVisual::new)
 				.apply();
+			ItemBlockRenderTypes.setRenderLayer(CBBlocks.BIO_PACKAGER.get(), RenderType.cutoutMipped());
 			ItemBlockRenderTypes.setRenderLayer(CBBlocks.FIXED_CARROT_FISHING_ROD.get(), RenderType.cutout());
 			ItemBlockRenderTypes.setRenderLayer(CBBlocks.BLAST_PROOF_GLASS.get(), RenderType.cutout());
 			ItemBlockRenderTypes.setRenderLayer(CBBlocks.BLAST_PROOF_FRAMED_GLASS.get(), RenderType.cutout());

@@ -43,6 +43,7 @@ import net.minecraftforge.fluids.capability.templates.FluidTank;
 import net.minecraftforge.items.ItemStackHandler;
 
 import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<SpiderAssemblyTableBlockEntity> {
 
@@ -60,6 +61,7 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 	private static final float DEPOT_Y_MODEL = 39f;
 	private static final float DEPOT_Z_MODEL = 0f;
 	private static final float SAW_BLADE_ROOT_OFFSET = 3f / 16f;
+	private static final float VECTOR_EPSILON = 1e-5f;
 
 	private final SpiderModel<RenderSpider> spiderModel;
 	private RenderSpider cachedSpider;
@@ -126,6 +128,7 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 
 			BlockState machineState = machineStateFor(kind);
 			boolean leftSide = slot < 4;
+			boolean isActive = (slot == activeSlot);
 			float sign = leftSide ? 1f : -1f;
 
 			float cz = Mth.cos(leg.zRot);
@@ -133,16 +136,22 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 			float cy = Mth.cos(leg.yRot);
 			float sy = Mth.sin(leg.yRot);
 
+			float restBend = isActive ? Mth.sin(progress * Mth.PI) * ACTIVE_LEG_BEND : 0f;
+			float restZRot = leg.zRot - (leftSide ? restBend : -restBend);
+			float restCz = Mth.cos(restZRot);
+			float restSz = Mth.sin(restZRot);
+
 			float axisX = sign * cz * cy;
 			float axisY = sign * sz * cy;
 			float axisZ = -sign * sy;
+			float restAxisX = sign * restCz * cy;
+			float restAxisY = sign * restSz * cy;
+			float restAxisZ = -sign * sy;
 
 			float anchorLength = LEG_LENGTH_MODEL - 1f;
 			float tipMx = sign * LEG_PIVOT_X_MODEL + anchorLength * axisX;
 			float tipMy = 15f + anchorLength * axisY;
 			float tipMz = LEG_PIVOT_Z_MODEL[slot] + anchorLength * axisZ;
-
-			boolean isActive = (slot == activeSlot);
 
 			float perpX = -sz;
 			float perpY = cz;
@@ -164,13 +173,13 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 			float dy = perpY + (depotY - perpY) * reachFactor;
 			float dz = perpZ + (depotZ - perpZ) * reachFactor;
 			float dLen = Mth.sqrt(dx * dx + dy * dy + dz * dz);
-			if (dLen < 1e-5f)
+			if (dLen < VECTOR_EPSILON)
 				continue;
 			dx /= dLen;
 			dy /= dLen;
 			dz /= dLen;
 
-			Quaternionf orientation = shortestArcFromDownY(dx, dy, dz);
+			Quaternionf orientation = armOrientation(dx, dy, dz, restAxisX, restAxisY, restAxisZ);
 
 			ms.pushPose();
 			ms.translate(tipMx / 16f, tipMy / 16f, tipMz / 16f);
@@ -206,6 +215,68 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 		axZ /= axLen;
 		float angle = (float) Math.acos(Mth.clamp(cosA, -1f, 1f));
 		return new Quaternionf().setAngleAxis(angle, axX, 0f, axZ);
+	}
+
+	private static Quaternionf armOrientation(float dx, float dy, float dz, float frontRefX, float frontRefY,
+		float frontRefZ) {
+		Quaternionf baseOrientation = shortestArcFromDownY(dx, dy, dz);
+
+		float refDot = frontRefX * dx + frontRefY * dy + frontRefZ * dz;
+		float frontX = frontRefX - dx * refDot;
+		float frontY = frontRefY - dy * refDot;
+		float frontZ = frontRefZ - dz * refDot;
+		float frontLen = Mth.sqrt(frontX * frontX + frontY * frontY + frontZ * frontZ);
+
+		if (frontLen < VECTOR_EPSILON) {
+			frontX = 0f;
+			frontY = 0f;
+			frontZ = -1f;
+			refDot = frontZ * dz;
+			frontX -= dx * refDot;
+			frontY -= dy * refDot;
+			frontZ -= dz * refDot;
+			frontLen = Mth.sqrt(frontX * frontX + frontY * frontY + frontZ * frontZ);
+		}
+
+		if (frontLen < VECTOR_EPSILON) {
+			frontX = 1f;
+			frontY = 0f;
+			frontZ = 0f;
+			refDot = frontX * dx;
+			frontX -= dx * refDot;
+			frontY -= dy * refDot;
+			frontZ -= dz * refDot;
+			frontLen = Mth.sqrt(frontX * frontX + frontY * frontY + frontZ * frontZ);
+		}
+
+		if (frontLen < VECTOR_EPSILON)
+			return baseOrientation;
+
+		frontX /= frontLen;
+		frontY /= frontLen;
+		frontZ /= frontLen;
+
+		Vector3f currentFront = new Vector3f(0f, 0f, -1f).rotate(baseOrientation);
+		float currentDotAxis = currentFront.x * dx + currentFront.y * dy + currentFront.z * dz;
+		currentFront.x -= dx * currentDotAxis;
+		currentFront.y -= dy * currentDotAxis;
+		currentFront.z -= dz * currentDotAxis;
+		float currentFrontLen = currentFront.length();
+		if (currentFrontLen < VECTOR_EPSILON)
+			return baseOrientation;
+		currentFront.div(currentFrontLen);
+
+		float dot = Mth.clamp(currentFront.x * frontX + currentFront.y * frontY + currentFront.z * frontZ, -1f, 1f);
+		float crossX = currentFront.y * frontZ - currentFront.z * frontY;
+		float crossY = currentFront.z * frontX - currentFront.x * frontZ;
+		float crossZ = currentFront.x * frontY - currentFront.y * frontX;
+		float signedSin = crossX * dx + crossY * dy + crossZ * dz;
+		float twistAngle = (float) Math.atan2(signedSin, dot);
+		if (Math.abs(twistAngle) < VECTOR_EPSILON)
+			return baseOrientation;
+
+		return new Quaternionf().setAngleAxis(twistAngle, dx, dy, dz)
+			.mul(baseOrientation);
 	}
 
 	private static BlockState machineStateFor(MachineKind kind) {
