@@ -46,10 +46,10 @@ public class SpiderAssemblyTableMenu extends AbstractContainerMenu {
 		for (int row = 0; row < 3; row++)
 			for (int col = 0; col < 9; col++)
 				addSlot(new net.minecraft.world.inventory.Slot(playerInventory, col + row * 9 + 9,
-					8 + col * 18, 82 + row * 18));
+					8 + col * 18, 96 + row * 18));
 
 		for (int col = 0; col < 9; col++)
-			addSlot(new net.minecraft.world.inventory.Slot(playerInventory, col, 8 + col * 18, 140));
+			addSlot(new net.minecraft.world.inventory.Slot(playerInventory, col, 8 + col * 18, 154));
 	}
 
 	public SpiderAssemblyTableBlockEntity getBlockEntity() {
@@ -59,6 +59,15 @@ public class SpiderAssemblyTableMenu extends AbstractContainerMenu {
 	@Override
 	public boolean stillValid(Player player) {
 		return blockEntity.canPlayerUse(player);
+	}
+
+	@Override
+	public boolean clickMenuButton(Player player, int id) {
+		if (id >= 0 && id < SpiderAssemblyTableBlockEntity.LEG_COUNT) {
+			blockEntity.handleLockButton(id, getCarried());
+			return true;
+		}
+		return false;
 	}
 
 	@Override
@@ -172,7 +181,7 @@ public class SpiderAssemblyTableMenu extends AbstractContainerMenu {
 		public boolean mayPlace(ItemStack stack) {
 			if (!super.mayPlace(stack))
 				return false;
-			return blockEntity.isHybridSlotItemOnly(hybridIndex);
+			return blockEntity.canHybridSlotAcceptItem(hybridIndex, stack);
 		}
 	}
 }
