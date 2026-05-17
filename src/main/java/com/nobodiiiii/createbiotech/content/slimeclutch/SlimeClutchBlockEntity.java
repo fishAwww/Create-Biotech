@@ -27,7 +27,6 @@ public class SlimeClutchBlockEntity extends SplitShaftBlockEntity {
 
 	private static final int RECHECK_PERIOD = 20;
 	private static final int MAX_WALK = 1024;
-	private static final float SAFETY_MARGIN = 0.001f;
 
 	private static final MethodHandle ROTATION_MODIFIER = resolveModifier();
 
@@ -152,7 +151,7 @@ public class SlimeClutchBlockEntity extends SplitShaftBlockEntity {
 
 		float mergedCapacity = capacity + subnetCapacity;
 		float mergedStress = stress + subnetStress;
-		return mergedCapacity >= mergedStress + SAFETY_MARGIN;
+		return mergedCapacity >= mergedStress;
 	}
 
 	private static float rotationModifier(KineticBlockEntity from, KineticBlockEntity to) {
