@@ -13,13 +13,13 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import com.nobodiiiii.createbiotech.CreateBiotech;
 import com.nobodiiiii.createbiotech.registry.CBBlocks;
 import com.simibubi.create.foundation.gui.AllGuiTextures;
+import com.simibubi.create.foundation.gui.AllIcons;
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
+import com.simibubi.create.foundation.gui.widget.IconButton;
 
 import net.createmod.catnip.gui.element.GuiGameElement;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractButton;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.RenderType;
@@ -42,17 +42,7 @@ public class SpiderAssemblyTableScreen extends AbstractSimiContainerScreen<Spide
 	private static final ResourceLocation BACKGROUND =
 		new ResourceLocation(CreateBiotech.MOD_ID, "textures/gui/spider_assembly_table.png");
 	private static final int BG_WIDTH = 216;
-	private static final int BG_HEIGHT = 109;
-
-	private static final int LOCK_BUTTON_SIZE = 16;
-	private static final int LOCK_BG_UNLOCKED = 0x55202020;
-	private static final int LOCK_BG_LOCKED = 0xCC4A3A12;
-	private static final int LOCK_BG_HOVER = 0x553A3A3A;
-	private static final int LOCK_BORDER_UNLOCKED = 0xFF555555;
-	private static final int LOCK_BORDER_LOCKED = 0xFFE6B33A;
-	private static final int LOCK_BORDER_HOVER = 0xFFFFFFFF;
-	private static final int LOCK_GLYPH_UNLOCKED = 0xFF888888;
-	private static final int LOCK_GLYPH_LOCKED = 0xFFE6B33A;
+	private static final int BG_HEIGHT = 113;
 
 	private List<Rect2i> extraAreas = Collections.emptyList();
 
@@ -67,10 +57,12 @@ public class SpiderAssemblyTableScreen extends AbstractSimiContainerScreen<Spide
 
 		for (int i = 0; i < SpiderAssemblyTableBlockEntity.LEG_COUNT; i++) {
 			final int slotIdx = i;
-			int x = leftPos + SpiderAssemblyTableMenu.SLOT_X_START + i * SpiderAssemblyTableMenu.SLOT_X_PITCH;
+			int x = leftPos + SpiderAssemblyTableMenu.SLOT_X_START + i * SpiderAssemblyTableMenu.SLOT_X_PITCH - 1;
 			int y = topPos + SpiderAssemblyTableMenu.LOCK_ROW_Y;
-			addRenderableWidget(new LockButton(x, y, slotIdx,
-				b -> Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, slotIdx)));
+			LockIconButton button = new LockIconButton(x, y, slotIdx);
+			button.withCallback(
+				() -> Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, slotIdx));
+			addRenderableWidget(button);
 		}
 
 		extraAreas = ImmutableList.of(new Rect2i(leftPos + BG_WIDTH, topPos + BG_HEIGHT - 56, 64, 56));
@@ -236,56 +228,19 @@ public class SpiderAssemblyTableScreen extends AbstractSimiContainerScreen<Spide
 		RenderSystem.setShaderColor(r, g, b, a);
 	}
 
-	private static void drawBorder(GuiGraphics graphics, int x, int y, int width, int height, int color) {
-		graphics.fill(x, y, x + width, y + 1, color);
-		graphics.fill(x, y + height - 1, x + width, y + height, color);
-		graphics.fill(x, y, x + 1, y + height, color);
-		graphics.fill(x + width - 1, y, x + width, y + height, color);
-	}
-
-	private class LockButton extends AbstractButton {
+	private class LockIconButton extends IconButton {
 		private final int hybridIndex;
-		private final OnPress onPress;
 
-		LockButton(int x, int y, int hybridIndex, OnPress onPress) {
-			super(x, y, LOCK_BUTTON_SIZE, LOCK_BUTTON_SIZE, Component.empty());
+		LockIconButton(int x, int y, int hybridIndex) {
+			super(x, y, AllIcons.I_CONFIG_UNLOCKED);
 			this.hybridIndex = hybridIndex;
-			this.onPress = onPress;
 		}
 
 		@Override
-		public void onPress() {
-			onPress.onPress(this);
-		}
-
-		@Override
-		public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-			SpiderAssemblyTableBlockEntity be = menu.getBlockEntity();
-			boolean locked = be.isHybridSlotLocked(hybridIndex);
-			boolean hover = isHoveredOrFocused();
-			int bg = locked ? LOCK_BG_LOCKED : (hover ? LOCK_BG_HOVER : LOCK_BG_UNLOCKED);
-			int border = hover ? LOCK_BORDER_HOVER : (locked ? LOCK_BORDER_LOCKED : LOCK_BORDER_UNLOCKED);
-
-			graphics.fill(getX() + 1, getY() + 1, getX() + width - 1, getY() + height - 1, bg);
-			drawBorder(graphics, getX(), getY(), width, height, border);
-			drawLockGlyph(graphics, getX() + width / 2 - 3, getY() + height / 2 - 4, locked);
-		}
-
-		private void drawLockGlyph(GuiGraphics graphics, int x, int y, boolean locked) {
-			int color = locked ? LOCK_GLYPH_LOCKED : LOCK_GLYPH_UNLOCKED;
-			graphics.fill(x + 1, y + 2, x + 6, y + 7, color);
-			graphics.fill(x + 2, y, x + 5, y + 1, color);
-			graphics.fill(x + 1, y + 1, x + 2, y + 2, color);
-			graphics.fill(x + 5, y + 1, x + 6, y + 2, color);
-			if (locked)
-				graphics.fill(x + 3, y + 4, x + 4, y + 6, 0xFF1F1F1F);
-		}
-
-		@Override
-		protected void updateWidgetNarration(NarrationElementOutput output) {}
-
-		interface OnPress {
-			void onPress(LockButton button);
+		public void doRender(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+			boolean locked = menu.getBlockEntity().isHybridSlotLocked(hybridIndex);
+			setIcon(locked ? AllIcons.I_CONFIG_LOCKED : AllIcons.I_CONFIG_UNLOCKED);
+			super.doRender(graphics, mouseX, mouseY, partialTicks);
 		}
 	}
 }

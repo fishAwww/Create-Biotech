@@ -27,9 +27,9 @@ public class SpiderAssemblyTableMenu extends AbstractContainerMenu {
 	public static final int SLOT_X_PITCH = 24;
 	public static final int MACHINE_SLOT_ROW_Y = 23;
 	public static final int HYBRID_SLOT_ROW_Y = 41;
-	public static final int LOCK_ROW_Y = 60;
+	public static final int LOCK_ROW_Y = 58;
 	public static final int PLAYER_INVENTORY_X = 28;
-	public static final int PLAYER_INVENTORY_Y = 131;
+	public static final int PLAYER_INVENTORY_Y = 135;
 
 	private final SpiderAssemblyTableBlockEntity blockEntity;
 

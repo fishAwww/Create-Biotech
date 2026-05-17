@@ -1,7 +1,7 @@
 {
   "parent": "create:block/gearshift/block",
   "textures": {
-    "0": "minecraft:block/magma",
-    "particle": "minecraft:block/magma"
+    "0": "create_biotech:block/slime_clutch_on",
+    "particle": "create_biotech:block/slime_clutch_on"
   }
 }
