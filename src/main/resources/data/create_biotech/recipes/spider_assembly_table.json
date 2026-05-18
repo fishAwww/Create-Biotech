@@ -1,0 +1,20 @@
+{
+  "type": "create_biotech:spider_assembly_table",
+  "pattern": [
+    "BSC"
+  ],
+  "key": {
+    "B": {
+      "item": "create_biotech:bionic_mechanism"
+    },
+    "S": {
+      "item": "create_biotech:cardboard_box"
+    },
+    "C": {
+      "item": "create:cogwheel"
+    }
+  },
+  "result": {
+    "item": "create_biotech:spider_assembly_table"
+  }
+}

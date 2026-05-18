@@ -2,18 +2,23 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
+    "B": {
+      "item": "create_biotech:bionic_mechanism"
+    },
     "C": {
       "item": "create:andesite_casing"
     },
-    "U": {
-      "item": "create_biotech:universal_joint"
+    "L": {
+      "item": "minecraft:lever"
     }
   },
   "pattern": [
-    "CU"
+    "L",
+    "C",
+    "B"
   ],
   "result": {
-    "item": "create_biotech:slime_clutch"
+    "item": "create_biotech:ghast_helm"
   },
   "show_notification": true
 }
