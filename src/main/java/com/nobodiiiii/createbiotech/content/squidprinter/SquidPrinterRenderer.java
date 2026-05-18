@@ -26,6 +26,10 @@ public class SquidPrinterRenderer extends SafeBlockEntityRenderer<SquidPrinterBl
 
 	private static final ResourceLocation SQUID_TEXTURE =
 		new ResourceLocation("minecraft", "textures/entity/squid/squid.png");
+	private static final float RUN_CYCLE_SPEED = 0.045f;
+	private static final float RUN_MIN_TENTACLE_ANGLE = 0.14f;
+	private static final float RUN_MAX_TENTACLE_ANGLE = Mth.PI * 0.25f;
+	private static final int TENTACLE_COUNT = 8;
 
 	private static final PartialModel[] BITS =
 		{ AllPartialModels.SPOUT_TOP, AllPartialModels.SPOUT_MIDDLE, AllPartialModels.SPOUT_BOTTOM };
@@ -121,17 +125,50 @@ public class SquidPrinterRenderer extends SafeBlockEntityRenderer<SquidPrinterBl
 		ModelPart root = squidModel.root();
 		root.getAllParts().forEach(ModelPart::resetPose);
 
+		float runningCycle = 0.0f;
 		float tentacleAngle = 0.0f;
 		if (be.isRunning() && be.getLevel() != null) {
-			float time = be.getLevel().getGameTime() + partialTicks;
-			float phase = (Mth.sin(time * 0.15f) + 1.0f) * 0.5f;
-			tentacleAngle = phase * (Mth.PI / 2.0f);
+			runningCycle = getRunningCycle(be, partialTicks);
+			float openness = smoothPingPong(runningCycle);
+			tentacleAngle = Mth.lerp(openness, RUN_MIN_TENTACLE_ANGLE, RUN_MAX_TENTACLE_ANGLE);
 		}
 		squidModel.setupAnim(null, 0.0f, 0.0f, tentacleAngle, 0.0f, 0.0f);
+		if (be.isRunning() && be.getLevel() != null) {
+			applyRunningPose(root, runningCycle, tentacleAngle);
+		}
 
 		VertexConsumer consumer = buffer.getBuffer(squidModel.renderType(SQUID_TEXTURE));
 		squidModel.renderToBuffer(ms, consumer, light, OverlayTexture.NO_OVERLAY, 1.0f, 1.0f, 1.0f, 1.0f);
 
 		ms.popPose();
+	}
+
+	private static float getRunningCycle(SquidPrinterBlockEntity be, float partialTicks) {
+		float time = (be.getLevel().getGameTime() + partialTicks) * RUN_CYCLE_SPEED;
+		return time - Mth.floor(time);
+	}
+
+	private static float smoothPingPong(float cycle) {
+		float pingPong = cycle < 0.5f ? cycle * 2.0f : (1.0f - cycle) * 2.0f;
+		pingPong = Mth.clamp(pingPong, 0.0f, 1.0f);
+		return pingPong * pingPong * (3.0f - 2.0f * pingPong);
+	}
+
+	private static void applyRunningPose(ModelPart root, float cycle, float tentacleAngle) {
+		float cycleRadians = cycle * Mth.TWO_PI;
+		float openness = Mth.inverseLerp(tentacleAngle, RUN_MIN_TENTACLE_ANGLE, RUN_MAX_TENTACLE_ANGLE);
+
+		ModelPart body = root.getChild("body");
+		body.y += Mth.sin(cycleRadians) * 0.35f;
+		body.xRot -= 0.08f * openness;
+		body.zRot = Mth.sin(cycleRadians * 0.5f) * 0.04f;
+
+		for (int i = 0; i < TENTACLE_COUNT; i++) {
+			ModelPart tentacle = root.getChild("tentacle" + i);
+			float phase = cycleRadians + i * (Mth.TWO_PI / TENTACLE_COUNT);
+			float flutter = Mth.sin(phase) * 0.08f * (0.35f + 0.65f * openness);
+			tentacle.xRot += flutter;
+			tentacle.yRot += Mth.cos(phase) * 0.04f * openness;
+		}
 	}
 }
