@@ -5,9 +5,13 @@ import java.util.EnumMap;
 import java.util.Map;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
+import com.nobodiiiii.createbiotech.content.boneratchet.BoneRatchetBlock;
 import com.nobodiiiii.createbiotech.content.biopackager.BioPackagerBlock;
 import com.nobodiiiii.createbiotech.content.bufferpad.BufferPadBlock;
 import com.nobodiiiii.createbiotech.content.evokerenchantingchamber.EvokerEnchantingChamberBlock;
+import com.nobodiiiii.createbiotech.content.experience.ExperienceCrystallizerBlock;
+import com.nobodiiiii.createbiotech.content.experience.ExperiencePumpBlock;
+import com.nobodiiiii.createbiotech.content.experience.ExperienceTankBlock;
 import com.nobodiiiii.createbiotech.content.explosionproofitemvault.ExplosionProofItemVaultBlock;
 import com.nobodiiiii.createbiotech.content.fixedcarrotfishingrod.FixedCarrotFishingRodBlock;
 import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHotAirBalloonAssemblyStationBlock;
@@ -71,6 +75,28 @@ public class CBBlocks {
 				.mapColor(MapColor.METAL)
 				.noOcclusion()));
 
+	public static final RegistryObject<ExperiencePumpBlock> EXPERIENCE_PUMP = BLOCKS.register("experience_pump",
+		() -> new ExperiencePumpBlock(Block.Properties.of()
+			.sound(SoundType.COPPER)
+			.strength(2.5f)
+			.mapColor(MapColor.METAL)
+			.noOcclusion()));
+
+	public static final RegistryObject<ExperienceCrystallizerBlock> EXPERIENCE_CRYSTALLIZER =
+		BLOCKS.register("experience_crystallizer",
+			() -> new ExperienceCrystallizerBlock(Block.Properties.of()
+				.sound(SoundType.WOOD)
+				.strength(2.0f)
+				.mapColor(MapColor.WOOD)
+				.noOcclusion()));
+
+	public static final RegistryObject<ExperienceTankBlock> EXPERIENCE_TANK = BLOCKS.register("experience_tank",
+		() -> new ExperienceTankBlock(Block.Properties.of()
+			.sound(SoundType.COPPER)
+			.strength(2.5f)
+			.mapColor(MapColor.METAL)
+			.noOcclusion()));
+
 	public static final RegistryObject<SquidPrinterBlock> SQUID_PRINTER = BLOCKS.register("squid_printer",
 		() -> new SquidPrinterBlock(Block.Properties.of()
 			.sound(SoundType.COPPER)
@@ -90,6 +116,13 @@ public class CBBlocks {
 			.sound(SoundType.WOOD)
 			.strength(0.8f)
 			.mapColor(MapColor.PODZOL)
+			.noOcclusion()));
+
+	public static final RegistryObject<BoneRatchetBlock> BONE_RATCHET = BLOCKS.register("bone_ratchet",
+		() -> new BoneRatchetBlock(Block.Properties.of()
+			.sound(SoundType.BONE_BLOCK)
+			.strength(0.8f)
+			.mapColor(MapColor.SAND)
 			.noOcclusion()));
 
 	public static final RegistryObject<FixedCarrotFishingRodBlock> FIXED_CARROT_FISHING_ROD =

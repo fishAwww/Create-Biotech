@@ -26,6 +26,9 @@ public class CBCreativeModeTabs {
 				.getDefaultInstance())
 			.displayItems((parameters, output) -> {
 				output.accept(CBItems.EVOKER_ENCHANTING_CHAMBER.get());
+				output.accept(CBItems.EXPERIENCE_PUMP.get());
+				output.accept(CBItems.EXPERIENCE_CRYSTALLIZER.get());
+				output.accept(CBItems.EXPERIENCE_TANK.get());
 				output.accept(CBItems.SQUID_PRINTER.get());
 				output.accept(CBItems.ENCHANTMENT_BOOK_COPY.get());
 				output.accept(CBItems.SLIME_BELT_CONNECTOR.get());
@@ -34,6 +37,7 @@ public class CBCreativeModeTabs {
 				output.accept(CBItems.HALF_SHAFT.get());
 				output.accept(CBItems.UNIVERSAL_JOINT.get());
 				output.accept(CBItems.SLIME_CLUTCH.get());
+				output.accept(CBItems.BONE_RATCHET.get());
 				output.accept(CBItems.CARDBOARD_BOX.get());
 				output.accept(CBItems.LARGE_CARDBOARD_BOX.get());
 				output.accept(CBItems.BIO_PACKAGER.get());

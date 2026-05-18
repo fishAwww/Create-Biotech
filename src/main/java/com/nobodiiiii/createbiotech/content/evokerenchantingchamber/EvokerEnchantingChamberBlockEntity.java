@@ -1,6 +1,9 @@
 package com.nobodiiiii.createbiotech.content.evokerenchantingchamber;
 
 import com.nobodiiiii.createbiotech.content.squidprinter.EnchantmentBookCopyItem;
+import com.nobodiiiii.createbiotech.content.experience.ExperienceConstants;
+import com.nobodiiiii.createbiotech.content.experience.ExperienceHelper;
+import com.nobodiiiii.createbiotech.content.experience.ExperienceSink;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 import com.nobodiiiii.createbiotech.registry.CBItems;
 
@@ -26,7 +29,7 @@ import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
 
-public class EvokerEnchantingChamberBlockEntity extends BlockEntity {
+public class EvokerEnchantingChamberBlockEntity extends BlockEntity implements ExperienceSink {
 
 	public static final int CAST_DURATION_TICKS = 40;
 	private static final double SPELL_RED = 0.4d;
@@ -34,6 +37,9 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity {
 	private static final double SPELL_BLUE = 0.35d;
 
 	private int castingTicksRemaining;
+	private int storedExperience;
+	private int remainingLevelPayments;
+	private boolean waitingForExperience;
 	private ItemStack heldItem = ItemStack.EMPTY;
 	private ItemStack pendingOutput = ItemStack.EMPTY;
 	private final LazyOptional<IItemHandler> itemHandlerCap;
@@ -55,7 +61,7 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity {
 			spawnCastingParticles((ServerLevel) level, pos, state, be.castingTicksRemaining);
 			be.castingTicksRemaining--;
 			if (be.castingTicksRemaining == 0) {
-				be.completeCasting();
+				be.completeSegment();
 				be.syncToClient();
 			}
 		}
@@ -104,9 +110,41 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity {
 
 	private void startCasting(ItemStack copyStack) {
 		heldItem = copyStack;
-		castingTicksRemaining = CAST_DURATION_TICKS;
+		remainingLevelPayments = ExperienceHelper.sumStoredEnchantmentLevels(copyStack);
+		castingTicksRemaining = 0;
+		waitingForExperience = false;
+		tryStartNextSegment();
 		setChanged();
 		syncToClient();
+	}
+
+	private void completeSegment() {
+		if (heldItem.isEmpty())
+			return;
+		if (remainingLevelPayments > 0) {
+			tryStartNextSegment();
+			return;
+		}
+		completeCasting();
+	}
+
+	private void tryStartNextSegment() {
+		if (heldItem.isEmpty())
+			return;
+		if (remainingLevelPayments <= 0) {
+			completeCasting();
+			return;
+		}
+		if (storedExperience < ExperienceConstants.CHAMBER_XP_PER_LEVEL) {
+			waitingForExperience = true;
+			castingTicksRemaining = 0;
+			return;
+		}
+		storedExperience -= ExperienceConstants.CHAMBER_XP_PER_LEVEL;
+		remainingLevelPayments--;
+		waitingForExperience = false;
+		castingTicksRemaining = CAST_DURATION_TICKS;
+		setChanged();
 	}
 
 	private void completeCasting() {
@@ -114,12 +152,26 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity {
 			return;
 		pendingOutput = EnchantmentBookCopyItem.toEnchantedBook(heldItem);
 		heldItem = ItemStack.EMPTY;
+		remainingLevelPayments = 0;
+		waitingForExperience = false;
 		if (level != null && !level.isClientSide)
 			level.playSound(null, worldPosition, SoundEvents.PLAYER_LEVELUP, SoundSource.BLOCKS, 0.6f, 1.4f);
 	}
 
 	public boolean isCastingSpell() {
 		return castingTicksRemaining > 0;
+	}
+
+	public boolean isWaitingForExperience() {
+		return waitingForExperience;
+	}
+
+	public int getStoredExperience() {
+		return storedExperience;
+	}
+
+	public int getRemainingLevelPayments() {
+		return remainingLevelPayments;
 	}
 
 	public boolean isBlocked() {
@@ -147,6 +199,9 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity {
 	protected void saveAdditional(CompoundTag tag) {
 		super.saveAdditional(tag);
 		tag.putInt("CastingTicks", castingTicksRemaining);
+		tag.putInt("StoredExperience", storedExperience);
+		tag.putInt("RemainingLevelPayments", remainingLevelPayments);
+		tag.putBoolean("WaitingForExperience", waitingForExperience);
 		if (!heldItem.isEmpty())
 			tag.put("HeldItem", heldItem.serializeNBT());
 		if (!pendingOutput.isEmpty())
@@ -157,6 +212,9 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity {
 	public void load(CompoundTag tag) {
 		super.load(tag);
 		castingTicksRemaining = tag.getInt("CastingTicks");
+		storedExperience = tag.getInt("StoredExperience");
+		remainingLevelPayments = tag.getInt("RemainingLevelPayments");
+		waitingForExperience = tag.getBoolean("WaitingForExperience");
 		heldItem = tag.contains("HeldItem") ? ItemStack.of(tag.getCompound("HeldItem")) : ItemStack.EMPTY;
 		pendingOutput = tag.contains("PendingOutput") ? ItemStack.of(tag.getCompound("PendingOutput"))
 			: ItemStack.EMPTY;
@@ -177,6 +235,25 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity {
 		if (cap == ForgeCapabilities.ITEM_HANDLER)
 			return itemHandlerCap.cast();
 		return super.getCapability(cap, side);
+	}
+
+	@Override
+	public int insertExperience(int amount, boolean simulate) {
+		if (amount <= 0)
+			return 0;
+		int accepted = Math.min(amount, getExperienceSpace());
+		if (simulate || accepted <= 0)
+			return accepted;
+		storedExperience += accepted;
+		if (waitingForExperience && castingTicksRemaining <= 0)
+			tryStartNextSegment();
+		syncToClient();
+		return accepted;
+	}
+
+	@Override
+	public int getExperienceSpace() {
+		return Math.max(0, ExperienceConstants.CHAMBER_CACHE_CAPACITY - storedExperience);
 	}
 
 	@Override

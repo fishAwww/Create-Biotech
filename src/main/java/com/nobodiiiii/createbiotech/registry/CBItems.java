@@ -6,6 +6,8 @@ import java.util.Map;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
 import com.nobodiiiii.createbiotech.content.cardboardbox.CardboardBoxItem;
+import com.nobodiiiii.createbiotech.content.experience.ExperienceTankItem;
+import com.nobodiiiii.createbiotech.content.experience.HiddenExperienceItem;
 import com.nobodiiiii.createbiotech.content.explosionproofitemvault.ExplosionProofItemVaultItem;
 import com.nobodiiiii.createbiotech.content.cardboardbox.LargeCardboardBoxItem;
 import com.nobodiiiii.createbiotech.content.magmabelt.MagmaBeltConnectorItem;
@@ -33,6 +35,18 @@ public class CBItems {
 	public static final RegistryObject<Item> EVOKER_ENCHANTING_CHAMBER = ITEMS.register("evoker_enchanting_chamber",
 		() -> new BlockItem(CBBlocks.EVOKER_ENCHANTING_CHAMBER.get(), new Item.Properties()));
 
+	public static final RegistryObject<Item> EXPERIENCE_PUMP = ITEMS.register("experience_pump",
+		() -> new BlockItem(CBBlocks.EXPERIENCE_PUMP.get(), new Item.Properties()));
+
+	public static final RegistryObject<Item> EXPERIENCE_CRYSTALLIZER = ITEMS.register("experience_crystallizer",
+		() -> new BlockItem(CBBlocks.EXPERIENCE_CRYSTALLIZER.get(), new Item.Properties()));
+
+	public static final RegistryObject<Item> EXPERIENCE_TANK = ITEMS.register("experience_tank",
+		() -> new ExperienceTankItem(CBBlocks.EXPERIENCE_TANK.get(), new Item.Properties()));
+
+	public static final RegistryObject<Item> EXPERIENCE = ITEMS.register("experience",
+		() -> new HiddenExperienceItem(new Item.Properties()));
+
 	public static final RegistryObject<Item> SQUID_PRINTER = ITEMS.register("squid_printer",
 		() -> new BlockItem(CBBlocks.SQUID_PRINTER.get(), new Item.Properties()));
 
@@ -59,6 +73,9 @@ public class CBItems {
 
 	public static final RegistryObject<Item> SLIME_CLUTCH = ITEMS.register("slime_clutch",
 		() -> new BlockItem(CBBlocks.SLIME_CLUTCH.get(), new Item.Properties()));
+
+	public static final RegistryObject<Item> BONE_RATCHET = ITEMS.register("bone_ratchet",
+		() -> new BlockItem(CBBlocks.BONE_RATCHET.get(), new Item.Properties()));
 
 	public static final RegistryObject<Item> CARDBOARD_BOX = ITEMS.register("cardboard_box",
 		() -> new CardboardBoxItem(new Item.Properties()));

@@ -83,6 +83,10 @@
     {
       "type": "single",
       "resource": "create_biotech:entity/spider_assembly_table/spider"
+    },
+    {
+      "type": "single",
+      "resource": "minecraft:entity/experience_orb"
     }
   ]
 }

@@ -18,6 +18,7 @@
     "FunnelBlockEntityMixin",
     "MechanicalPressBlockEntityMixin",
     "MechanicalMixerBlockEntityMixin",
+    "NozzleBlockMixin",
     "MobAccessor",
     "PressingBehaviourSoundMixin",
     "PowerBeltWalkAnimationMixin"

@@ -1,0 +1,17 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "create_biotech:block/bone_ratchet/block",
+      "x": 90,
+      "y": 90
+    },
+    "axis=y": {
+      "model": "create_biotech:block/bone_ratchet/block"
+    },
+    "axis=z": {
+      "model": "create_biotech:block/bone_ratchet/block",
+      "x": 90,
+      "y": 180
+    }
+  }
+}

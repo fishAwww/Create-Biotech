@@ -1,0 +1,295 @@
+package com.nobodiiiii.createbiotech.content.experience;
+
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import com.nobodiiiii.createbiotech.content.evokerenchantingchamber.EvokerEnchantingChamberBlock;
+import com.nobodiiiii.createbiotech.content.evokerenchantingchamber.EvokerEnchantingChamberBlockEntity;
+import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
+import com.simibubi.create.AllBlocks;
+import com.simibubi.create.AllItems;
+import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.items.IItemHandler;
+
+public class ExperiencePumpBlockEntity extends KineticBlockEntity {
+	private static final double DEFAULT_ATTRACTION_RADIUS = 1.5d;
+	private static final double CORE_RADIUS = 0.75d;
+	private static final double FIELD_DEPTH = 1.5d;
+
+	private double fractionalXp;
+
+	public ExperiencePumpBlockEntity(BlockPos pos, BlockState state) {
+		super(CBBlockEntityTypes.EXPERIENCE_PUMP.get(), pos, state);
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+		if (level == null || level.isClientSide)
+			return;
+		float speed = Math.abs(getSpeed());
+		if (speed <= 0)
+			return;
+
+		fractionalXp += speed * ExperienceConstants.PUMP_XP_PER_RPM_PER_SECOND / 20.0d;
+		int budget = (int) Math.floor(fractionalXp);
+		if (budget <= 0)
+			return;
+
+		transferExperience(budget);
+		fractionalXp -= budget;
+		if (fractionalXp >= 1.0d)
+			fractionalXp = 0.999d;
+	}
+
+	private int transferExperience(int budget) {
+		Direction outputSide = getOutputSide();
+		OutputTarget output = resolveOutput(outputSide, budget);
+		if (output.blocked() || output.capacity() <= 0)
+			return 0;
+
+		int outputBudget = Math.min(budget, output.capacity());
+		int extracted = extractFromInput(getInputSide(), outputBudget);
+		if (extracted <= 0)
+			return 0;
+		int accepted = output.accept(extracted);
+		return Math.max(0, accepted);
+	}
+
+	private int extractFromInput(Direction inputSide, int budget) {
+		BlockPos inputPos = worldPosition.relative(inputSide);
+		BlockState inputState = level.getBlockState(inputPos);
+		BlockEntity inputBE = level.getBlockEntity(inputPos);
+
+		if (inputBE instanceof ExperienceSource source)
+			return source.extractExperience(budget, false);
+
+		int fromContainer = extractNuggets(inputBE, inputSide.getOpposite(), budget);
+		if (fromContainer > 0)
+			return fromContainer;
+
+		if (isOpenEndpoint(inputPos, inputState, inputSide))
+			return suctionOpenWorld(inputSide, budget, isNozzleFacing(inputPos, inputSide));
+
+		return 0;
+	}
+
+	private int extractNuggets(@Nullable BlockEntity inputBE, Direction sideForContainer, int budget) {
+		if (inputBE == null || budget < ExperienceConstants.XP_PER_NUGGET)
+			return 0;
+		IItemHandler handler = inputBE.getCapability(ForgeCapabilities.ITEM_HANDLER, sideForContainer)
+			.orElse(null);
+		if (handler == null)
+			return 0;
+
+		int nuggetsToExtract = budget / ExperienceConstants.XP_PER_NUGGET;
+		int extracted = 0;
+		for (int slot = 0; slot < handler.getSlots() && extracted < nuggetsToExtract; slot++) {
+			ItemStack simulated = handler.extractItem(slot, nuggetsToExtract - extracted, true);
+			if (simulated.isEmpty() || !simulated.is(AllItems.EXP_NUGGET.get()))
+				continue;
+			ItemStack actual = handler.extractItem(slot, simulated.getCount(), false);
+			if (actual.isEmpty() || !actual.is(AllItems.EXP_NUGGET.get()))
+				continue;
+			extracted += actual.getCount();
+		}
+		return ExperienceHelper.nuggetsToXp(extracted);
+	}
+
+	private int suctionOpenWorld(Direction inputSide, int budget, boolean nozzle) {
+		Vec3 center = Vec3.atCenterOf(worldPosition).add(Vec3.atLowerCornerOf(inputSide.getNormal())
+			.scale(nozzle ? 1.65d : 1.05d));
+		double normalizedSpeed = Math.min(Math.abs(getSpeed()) / ExperienceConstants.SPEED_NORMALIZATION_RPM, 1.0d);
+		double attractionRadius = DEFAULT_ATTRACTION_RADIUS + (nozzle ? 4.0d * normalizedSpeed : 0.0d);
+		AABB attractionBox = boxAround(center, attractionRadius, FIELD_DEPTH + (nozzle ? 3.0d * normalizedSpeed : 0));
+		AABB coreBox = boxAround(center, CORE_RADIUS, CORE_RADIUS);
+		int remaining = budget;
+		int absorbed = 0;
+
+		List<ExperienceOrb> orbs = level.getEntitiesOfClass(ExperienceOrb.class, attractionBox, orb -> orb.isAlive());
+		for (ExperienceOrb orb : orbs) {
+			if (remaining <= 0)
+				break;
+			if (!coreBox.contains(orb.position())) {
+				attractOrb(orb, center, normalizedSpeed);
+				continue;
+			}
+			int value = orb.getValue();
+			if (value <= 0)
+				continue;
+			int taken = Math.min(value, remaining);
+			orb.discard();
+			if (value > taken)
+				ExperienceHelper.spawnExperience(level, orb.position(), value - taken);
+			remaining -= taken;
+			absorbed += taken;
+		}
+
+		if (remaining > 0) {
+			List<Player> players = level.getEntitiesOfClass(Player.class, coreBox,
+				player -> player.isAlive() && !player.isSpectator());
+			for (Player player : players) {
+				if (remaining <= 0)
+					break;
+				int drained = ExperienceHelper.drainPlayerExperience(player, remaining);
+				remaining -= drained;
+				absorbed += drained;
+			}
+		}
+
+		return absorbed;
+	}
+
+	private void attractOrb(ExperienceOrb orb, Vec3 center, double normalizedSpeed) {
+		Vec3 delta = center.subtract(orb.position());
+		if (delta.lengthSqr() < 1.0E-4d)
+			return;
+		Vec3 pull = delta.normalize()
+			.scale(0.035d + normalizedSpeed * 0.06d);
+		orb.setDeltaMovement(orb.getDeltaMovement()
+			.add(pull));
+	}
+
+	private OutputTarget resolveOutput(Direction outputSide, int budget) {
+		BlockPos outputPos = worldPosition.relative(outputSide);
+		BlockState outputState = level.getBlockState(outputPos);
+		ExperienceSink sink = findExperienceSink(outputPos, outputState);
+		if (sink != null) {
+			int accepted = sink.insertExperience(budget, true);
+			return accepted <= 0 ? OutputTarget.blockedTarget() : OutputTarget.sink(sink, accepted);
+		}
+
+		if (isOpenEndpoint(outputPos, outputState, outputSide))
+			return OutputTarget.open(this, outputSide, isNozzleFacing(outputPos, outputSide), budget);
+
+		return OutputTarget.blockedTarget();
+	}
+
+	@Nullable
+	private ExperienceSink findExperienceSink(BlockPos pos, BlockState state) {
+		BlockEntity be = level.getBlockEntity(pos);
+		if (be instanceof ExperienceSink sink)
+			return sink;
+		if (state.is(com.nobodiiiii.createbiotech.registry.CBBlocks.EVOKER_ENCHANTING_CHAMBER.get())
+			&& state.getValue(EvokerEnchantingChamberBlock.HALF) == DoubleBlockHalf.UPPER) {
+			BlockEntity lower = level.getBlockEntity(pos.below());
+			if (lower instanceof EvokerEnchantingChamberBlockEntity chamber)
+				return chamber;
+		}
+		return null;
+	}
+
+	private boolean isOpenEndpoint(BlockPos pos, BlockState state, Direction side) {
+		if (state.isAir())
+			return true;
+		if (isNozzleFacing(pos, side))
+			return true;
+		return state.getCollisionShape(level, pos)
+			.isEmpty();
+	}
+
+	private boolean isNozzleFacing(BlockPos pos, Direction side) {
+		BlockState state = level.getBlockState(pos);
+		return AllBlocks.NOZZLE.has(state) && state.hasProperty(BlockStateProperties.FACING)
+			&& state.getValue(BlockStateProperties.FACING) == side;
+	}
+
+	private Direction getOutputSide() {
+		return getBlockState().getValue(ExperiencePumpBlock.FACING);
+	}
+
+	private Direction getInputSide() {
+		return getOutputSide().getOpposite();
+	}
+
+	private void emitExperience(Direction outputSide, boolean nozzle, int amount) {
+		if (amount <= 0)
+			return;
+		double normalizedSpeed = Math.min(Math.abs(getSpeed()) / ExperienceConstants.SPEED_NORMALIZATION_RPM, 1.0d);
+		Vec3 direction = Vec3.atLowerCornerOf(outputSide.getNormal());
+		Vec3 base = Vec3.atCenterOf(worldPosition)
+			.add(direction.scale(nozzle ? 1.8d : 1.05d));
+		int packets = Math.max(1, Math.min(8, amount / 12 + 1));
+		int remaining = amount;
+		for (int i = 0; i < packets; i++) {
+			int value = remaining / (packets - i);
+			remaining -= value;
+			Vec3 spread = nozzle ? randomPerpendicular(outputSide, normalizedSpeed * 0.45d) : Vec3.ZERO;
+			Vec3 pos = base.add(spread);
+			ExperienceOrb orb = new ExperienceOrb(level, pos.x, pos.y, pos.z, value);
+			if (nozzle)
+				orb.setDeltaMovement(direction.scale(0.08d + normalizedSpeed * 0.18d)
+					.add(spread.scale(0.08d)));
+			level.addFreshEntity(orb);
+		}
+	}
+
+	private Vec3 randomPerpendicular(Direction direction, double scale) {
+		double a = (level.random.nextDouble() - 0.5d) * scale;
+		double b = (level.random.nextDouble() - 0.5d) * scale;
+		return switch (direction.getAxis()) {
+			case X -> new Vec3(0, a, b);
+			case Y -> new Vec3(a, 0, b);
+			case Z -> new Vec3(a, b, 0);
+		};
+	}
+
+	private static AABB boxAround(Vec3 center, double radius, double depth) {
+		double halfDepth = Math.max(radius, depth);
+		return new AABB(center.x - radius, center.y - radius, center.z - radius, center.x + radius, center.y + radius,
+			center.z + radius).inflate(halfDepth - radius);
+	}
+
+	@Override
+	protected void write(CompoundTag compound, boolean clientPacket) {
+		super.write(compound, clientPacket);
+		compound.putDouble("FractionalXp", fractionalXp);
+	}
+
+	@Override
+	protected void read(CompoundTag compound, boolean clientPacket) {
+		super.read(compound, clientPacket);
+		fractionalXp = compound.getDouble("FractionalXp");
+	}
+
+	private record OutputTarget(boolean blocked, int capacity, @Nullable ExperienceSink sink,
+		@Nullable ExperiencePumpBlockEntity pump, @Nullable Direction openSide, boolean nozzle) {
+
+		static OutputTarget blockedTarget() {
+			return new OutputTarget(true, 0, null, null, null, false);
+		}
+
+		static OutputTarget sink(ExperienceSink sink, int capacity) {
+			return new OutputTarget(false, capacity, sink, null, null, false);
+		}
+
+		static OutputTarget open(ExperiencePumpBlockEntity pump, Direction side, boolean nozzle, int capacity) {
+			return new OutputTarget(false, capacity, null, pump, side, nozzle);
+		}
+
+		int accept(int amount) {
+			if (sink != null)
+				return sink.insertExperience(amount, false);
+			if (pump != null && openSide != null) {
+				pump.emitExperience(openSide, nozzle, amount);
+				return amount;
+			}
+			return 0;
+		}
+	}
+}

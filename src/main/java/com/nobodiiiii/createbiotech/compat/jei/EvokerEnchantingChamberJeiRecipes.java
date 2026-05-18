@@ -28,6 +28,8 @@ public final class EvokerEnchantingChamberJeiRecipes {
 		List<Component> notes = List.of(
 			Component.translatable("create_biotech.jei.evoker_enchanting_chamber.note.ritual",
 				EvokerEnchantingChamberBlockEntity.CAST_DURATION_TICKS),
+			Component.translatable("create_biotech.jei.evoker_enchanting_chamber.note.experience"),
+			Component.translatable("create_biotech.jei.evoker_enchanting_chamber.note.segmented"),
 			Component.translatable("create_biotech.jei.evoker_enchanting_chamber.note.blocked_until_extracted"));
 
 		for (Enchantment enchantment : ForgeRegistries.ENCHANTMENTS.getValues()) {
@@ -36,17 +38,17 @@ public final class EvokerEnchantingChamberJeiRecipes {
 			ResourceLocation enchId = ForgeRegistries.ENCHANTMENTS.getKey(enchantment);
 			if (enchId == null)
 				continue;
-			int level = Math.max(1, enchantment.getMaxLevel());
+			for (int level = 1; level <= Math.max(1, enchantment.getMaxLevel()); level++) {
+				ItemStack templateBook = new ItemStack(Items.ENCHANTED_BOOK);
+				EnchantedBookItem.addEnchantment(templateBook, new EnchantmentInstance(enchantment, level));
 
-			ItemStack templateBook = new ItemStack(Items.ENCHANTED_BOOK);
-			EnchantedBookItem.addEnchantment(templateBook, new EnchantmentInstance(enchantment, level));
+				ItemStack inputCopy =
+					EnchantmentBookCopyItem.fromEnchantedBook(templateBook, CBItems.ENCHANTMENT_BOOK_COPY.get());
 
-			ItemStack inputCopy =
-				EnchantmentBookCopyItem.fromEnchantedBook(templateBook, CBItems.ENCHANTMENT_BOOK_COPY.get());
-
-			ResourceLocation id = CreateBiotech.asResource(
-				"evoker_enchanting_chamber/" + enchId.getNamespace() + "_" + enchId.getPath() + "_" + level);
-			recipes.add(new EvokerEnchantingChamberJeiRecipe(id, inputCopy, templateBook, notes));
+				ResourceLocation id = CreateBiotech.asResource(
+					"evoker_enchanting_chamber/" + enchId.getNamespace() + "_" + enchId.getPath() + "_" + level);
+				recipes.add(new EvokerEnchantingChamberJeiRecipe(id, inputCopy, templateBook, notes));
+			}
 		}
 		return recipes;
 	}

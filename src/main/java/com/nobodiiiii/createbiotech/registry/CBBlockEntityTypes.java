@@ -1,8 +1,12 @@
 package com.nobodiiiii.createbiotech.registry;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
+import com.nobodiiiii.createbiotech.content.boneratchet.BoneRatchetBlockEntity;
 import com.nobodiiiii.createbiotech.content.biopackager.BioPackagerBlockEntity;
 import com.nobodiiiii.createbiotech.content.evokerenchantingchamber.EvokerEnchantingChamberBlockEntity;
+import com.nobodiiiii.createbiotech.content.experience.ExperienceCrystallizerBlockEntity;
+import com.nobodiiiii.createbiotech.content.experience.ExperiencePumpBlockEntity;
+import com.nobodiiiii.createbiotech.content.experience.ExperienceTankBlockEntity;
 import com.nobodiiiii.createbiotech.content.explosionproofitemvault.ExplosionProofItemVaultBlockEntity;
 import com.nobodiiiii.createbiotech.content.fixedcarrotfishingrod.FixedCarrotFishingRodBlockEntity;
 import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHotAirBalloonAssemblyStationBlockEntity;
@@ -68,6 +72,24 @@ public class CBBlockEntityTypes {
 				.of(EvokerEnchantingChamberBlockEntity::new, CBBlocks.EVOKER_ENCHANTING_CHAMBER.get())
 				.build(null));
 
+	public static final RegistryObject<BlockEntityType<ExperiencePumpBlockEntity>> EXPERIENCE_PUMP =
+		BLOCK_ENTITY_TYPES.register("experience_pump",
+			() -> BlockEntityType.Builder
+				.of(ExperiencePumpBlockEntity::new, CBBlocks.EXPERIENCE_PUMP.get())
+				.build(null));
+
+	public static final RegistryObject<BlockEntityType<ExperienceCrystallizerBlockEntity>> EXPERIENCE_CRYSTALLIZER =
+		BLOCK_ENTITY_TYPES.register("experience_crystallizer",
+			() -> BlockEntityType.Builder
+				.of(ExperienceCrystallizerBlockEntity::new, CBBlocks.EXPERIENCE_CRYSTALLIZER.get())
+				.build(null));
+
+	public static final RegistryObject<BlockEntityType<ExperienceTankBlockEntity>> EXPERIENCE_TANK =
+		BLOCK_ENTITY_TYPES.register("experience_tank",
+			() -> BlockEntityType.Builder
+				.of(ExperienceTankBlockEntity::new, CBBlocks.EXPERIENCE_TANK.get())
+				.build(null));
+
 	public static final RegistryObject<BlockEntityType<SquidPrinterBlockEntity>> SQUID_PRINTER =
 		BLOCK_ENTITY_TYPES.register("squid_printer",
 			() -> BlockEntityType.Builder
@@ -83,6 +105,11 @@ public class CBBlockEntityTypes {
 	public static final RegistryObject<BlockEntityType<SlimeClutchBlockEntity>> SLIME_CLUTCH =
 		BLOCK_ENTITY_TYPES.register("slime_clutch",
 			() -> BlockEntityType.Builder.of(SlimeClutchBlockEntity::new, CBBlocks.SLIME_CLUTCH.get())
+				.build(null));
+
+	public static final RegistryObject<BlockEntityType<BoneRatchetBlockEntity>> BONE_RATCHET =
+		BLOCK_ENTITY_TYPES.register("bone_ratchet",
+			() -> BlockEntityType.Builder.of(BoneRatchetBlockEntity::new, CBBlocks.BONE_RATCHET.get())
 				.build(null));
 
 	public static final RegistryObject<BlockEntityType<FixedCarrotFishingRodBlockEntity>> FIXED_CARROT_FISHING_ROD =

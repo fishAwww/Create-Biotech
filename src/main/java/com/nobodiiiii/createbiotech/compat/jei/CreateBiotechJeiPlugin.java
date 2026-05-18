@@ -50,6 +50,8 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 		registration.addRecipeCategories(new CreeperBlastChamberHighPressureJeiCategory());
 		registration.addRecipeCategories(new SquidPrinterJeiCategory());
 		registration.addRecipeCategories(new EvokerEnchantingChamberJeiCategory());
+		registration.addRecipeCategories(new ExperienceCrystallizerJeiCategory());
+		registration.addRecipeCategories(new ExperiencePumpJeiCategory());
 	}
 
 	@Override
@@ -61,6 +63,8 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 			CreeperBlastChamberHighPressureJeiRecipes.create());
 		registration.addRecipes(SquidPrinterJeiCategory.TYPE, SquidPrinterJeiRecipes.create());
 		registration.addRecipes(EvokerEnchantingChamberJeiCategory.TYPE, EvokerEnchantingChamberJeiRecipes.create());
+		registration.addRecipes(ExperienceCrystallizerJeiCategory.TYPE, ExperienceJeiRecipes.crystallizer());
+		registration.addRecipes(ExperiencePumpJeiCategory.TYPE, ExperienceJeiRecipes.pump());
 		registration.addRecipes(CREATE_PACKING, basinEntityProcessingPackingRecipes());
 		registration.addRecipes(CREATE_ITEM_APPLICATION, List.of(powerBeltConversion()));
 	}
@@ -73,6 +77,9 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 		registration.addRecipeCatalyst(new ItemStack(CBBlocks.SQUID_PRINTER.get()), SquidPrinterJeiCategory.TYPE);
 		registration.addRecipeCatalyst(new ItemStack(CBBlocks.EVOKER_ENCHANTING_CHAMBER.get()),
 			EvokerEnchantingChamberJeiCategory.TYPE);
+		registration.addRecipeCatalyst(new ItemStack(CBBlocks.EXPERIENCE_CRYSTALLIZER.get()),
+			ExperienceCrystallizerJeiCategory.TYPE);
+		registration.addRecipeCatalyst(new ItemStack(CBBlocks.EXPERIENCE_PUMP.get()), ExperiencePumpJeiCategory.TYPE);
 	}
 
 	private static List<BasinRecipe> basinEntityProcessingPackingRecipes() {
