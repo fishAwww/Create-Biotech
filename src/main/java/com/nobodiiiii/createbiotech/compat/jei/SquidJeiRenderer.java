@@ -27,6 +27,9 @@ public final class SquidJeiRenderer {
 	private static final float RUN_MAX_TENTACLE_ANGLE = Mth.PI * 0.25f;
 	private static final float GUI_BASE_SCALE = 8.5f;
 	private static final float GUI_Y_OFFSET = -48.0f;
+	private static final float SPOUT_SCENE_X_OFFSET = 13.0f;
+	private static final float SPOUT_SCENE_Y_OFFSET = -14.0f;
+	private static final float SPOUT_SCENE_Z_OFFSET = 0.0f;
 	private static final int TENTACLE_COUNT = 8;
 	private static final int FULL_BRIGHT = 0x00F000F0;
 
@@ -37,19 +40,24 @@ public final class SquidJeiRenderer {
 	}
 
 	public static void render(GuiGraphics graphics, int centerX, int centerY, float scale) {
-		Minecraft minecraft = Minecraft.getInstance();
-		MultiBufferSource.BufferSource buffer = minecraft.renderBuffers()
-			.bufferSource();
+		renderWithTransform(graphics, centerX, centerY + GUI_Y_OFFSET, 100.0f, scale);
+	}
+
+	public static void renderInSpoutScene(GuiGraphics graphics, float scale) {
+		renderWithTransform(graphics, SPOUT_SCENE_X_OFFSET, SPOUT_SCENE_Y_OFFSET, SPOUT_SCENE_Z_OFFSET, scale);
+	}
+
+	private static void renderWithTransform(GuiGraphics graphics, float x, float y, float z, float scale) {
+		MultiBufferSource.BufferSource buffer = graphics.bufferSource();
 		PoseStack poseStack = graphics.pose();
 
 		poseStack.pushPose();
-		poseStack.translate(centerX, centerY + GUI_Y_OFFSET, 150.0f);
+		poseStack.translate(x, y, z);
 		poseStack.mulPose(Axis.XP.rotationDegrees(-15.5f));
 		poseStack.mulPose(Axis.YP.rotationDegrees(22.5f));
 		float finalScale = GUI_BASE_SCALE * scale * 2;
 		poseStack.scale(finalScale, finalScale, -finalScale);
 		renderSquidModel(poseStack, buffer, FULL_BRIGHT, AnimationTickHolder.getRenderTime());
-		buffer.endBatch();
 		poseStack.popPose();
 	}
 

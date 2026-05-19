@@ -1,9 +1,4 @@
 {
-  "parent": "create:block/encased_cogwheel/block",
-  "textures": {
-    "1": "minecraft:block/bone_block_top",
-    "casing": "minecraft:block/bone_block_side",
-    "particle": "minecraft:block/bone_block_side",
-    "side": "create:block/andesite_encased_cogwheel_side"
-  }
+  "parent": "create:block/encased_cogwheel/block_top_bottom",
+  "render_type": "minecraft:cutout"
 }

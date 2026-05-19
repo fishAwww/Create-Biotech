@@ -3,7 +3,6 @@ package com.nobodiiiii.createbiotech.compat.jei;
 import com.nobodiiiii.createbiotech.CreateBiotech;
 import com.nobodiiiii.createbiotech.registry.CBBlocks;
 import com.simibubi.create.compat.jei.category.CreateRecipeCategory;
-import com.simibubi.create.compat.jei.category.animations.AnimatedSpout;
 import com.simibubi.create.foundation.gui.AllGuiTextures;
 
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
@@ -30,7 +29,7 @@ public class SquidPrinterJeiCategory extends AbstractRecipeCategory<SquidPrinter
 	private static final int TEMPLATE_SLOT_Y = 5;
 	private static final Component NOT_CONSUMED = Component.translatable("create.recipe.deploying.not_consumed");
 
-	private final AnimatedSpout spout = new AnimatedSpout();
+	private final AnimatedSquidSpout spout = new AnimatedSquidSpout();
 
 	public SquidPrinterJeiCategory() {
 		super(TYPE, Component.translatable("create_biotech.recipe.printing"),
@@ -62,7 +61,6 @@ public class SquidPrinterJeiCategory extends AbstractRecipeCategory<SquidPrinter
 		spout.withFluids(recipe.requiredFluid()
 			.getMatchingFluidStacks())
 			.draw(graphics, WIDTH / 2 - 13, 22);
-		SquidJeiRenderer.render(graphics, 88, 56, 1.0f);
 	}
 
 	@Override
