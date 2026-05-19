@@ -2,8 +2,6 @@ package com.nobodiiiii.createbiotech.compat.jei;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.nobodiiiii.createbiotech.mixin.client.CreeperAccessor;
@@ -12,30 +10,24 @@ import com.simibubi.create.AllPartialModels;
 import com.simibubi.create.compat.jei.category.animations.AnimatedKinetics;
 
 import net.createmod.catnip.animation.AnimationTickHolder;
-import net.createmod.catnip.gui.UIRenderHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.level.Level;
 
-public class HighPressureCreeperDrawable extends AnimatedKinetics {
+public class HighPressureCreeperDrawable extends AnimatedKineticsWithEntities {
 	private static final int PRESS_CYCLE = 30;
 	private static final int PRESS_RENDER_Z = 100;
 	private static final int PRESS_SCALE = 20;
+	private static final double CREEPER_ATTACHMENT_Y = 2d;
 	private static final float PRESS_EFFECT_START_OFFSET = 0.4f;
 	private static final CompoundTag CHARGED_CREEPER_TAG = createChargedCreeperTag();
 
 	private final int width;
 	private final int height;
-	private final double creeperLocalY;
-	private final float creeperYaw;
-	private final float creeperPitch;
 	private final float horizontalScale;
 	private final float verticalScale;
 	private final int swell;
@@ -45,13 +37,9 @@ public class HighPressureCreeperDrawable extends AnimatedKinetics {
 	@Nullable
 	private Level cachedLevel;
 
-	public HighPressureCreeperDrawable(int width, int height, double creeperLocalY, float creeperYaw,
-		float creeperPitch, float horizontalScale, float verticalScale, int swell) {
+	public HighPressureCreeperDrawable(int width, int height, float horizontalScale, float verticalScale, int swell) {
 		this.width = width;
 		this.height = height;
-		this.creeperLocalY = creeperLocalY;
-		this.creeperYaw = creeperYaw;
-		this.creeperPitch = creeperPitch;
 		this.horizontalScale = horizontalScale;
 		this.verticalScale = verticalScale;
 		this.swell = swell;
@@ -79,7 +67,12 @@ public class HighPressureCreeperDrawable extends AnimatedKinetics {
 			return;
 
 		float headOffset = getAnimatedHeadOffset();
+		renderPressBody(guiGraphics, xOffset, yOffset);
+		renderCreeper(guiGraphics, creeper, xOffset, yOffset, headOffset);
+		renderPressHead(guiGraphics, xOffset, yOffset, headOffset);
+	}
 
+	private void renderPressBody(GuiGraphics guiGraphics, int xOffset, int yOffset) {
 		PoseStack poseStack = guiGraphics.pose();
 		poseStack.pushPose();
 		poseStack.translate(xOffset, yOffset, PRESS_RENDER_Z);
@@ -95,7 +88,15 @@ public class HighPressureCreeperDrawable extends AnimatedKinetics {
 			.scale(PRESS_SCALE)
 			.render(guiGraphics);
 
-		renderCreeperInScene(guiGraphics, creeper, headOffset);
+		poseStack.popPose();
+	}
+
+	private void renderPressHead(GuiGraphics guiGraphics, int xOffset, int yOffset, float headOffset) {
+		PoseStack poseStack = guiGraphics.pose();
+		poseStack.pushPose();
+		poseStack.translate(xOffset, yOffset, PRESS_RENDER_Z);
+		poseStack.mulPose(Axis.XP.rotationDegrees(-15.5f));
+		poseStack.mulPose(Axis.YP.rotationDegrees(22.5f));
 
 		blockElement(AllPartialModels.MECHANICAL_PRESS_HEAD)
 			.atLocal(0, -headOffset, 0)
@@ -105,7 +106,7 @@ public class HighPressureCreeperDrawable extends AnimatedKinetics {
 		poseStack.popPose();
 	}
 
-	private void renderCreeperInScene(GuiGraphics guiGraphics, Creeper creeper, float headOffset) {
+	private void renderCreeper(GuiGraphics guiGraphics, Creeper creeper, int xOffset, int yOffset, float headOffset) {
 		float compression = getCompressionFromHeadOffset(headOffset);
 		float pulse = 0.5f + 0.5f * Mth.sin(AnimationTickHolder.getRenderTime() * 0.9f);
 		int renderSwell =
@@ -117,37 +118,15 @@ public class HighPressureCreeperDrawable extends AnimatedKinetics {
 
 		float appliedHorizontalScale = Mth.lerp(compression, 1f, horizontalScale);
 		float appliedVerticalScale = Mth.lerp(compression, 1f, verticalScale);
-
-		creeper.tickCount = Mth.floor(AnimationTickHolder.getRenderTime());
-		creeper.setYBodyRot(creeperYaw);
-		creeper.yBodyRotO = creeperYaw;
-		creeper.setYRot(creeperYaw);
-		creeper.yRotO = creeperYaw;
-		creeper.yHeadRot = creeperYaw;
-		creeper.yHeadRotO = creeperYaw;
-		creeper.setXRot(creeperPitch);
-		creeper.xRotO = creeperPitch;
-
-		PoseStack poseStack = guiGraphics.pose();
-		poseStack.pushPose();
-
-		poseStack.scale(PRESS_SCALE, PRESS_SCALE, PRESS_SCALE);
-		UIRenderHelper.flipForGuiRender(poseStack);
-
-		poseStack.translate(0.5d, creeperLocalY, 0.5d);
-		poseStack.scale(appliedHorizontalScale, appliedVerticalScale, appliedHorizontalScale);
-
-		EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-		dispatcher.setRenderShadow(false);
-		Lighting.setupForEntityInInventory();
-		MultiBufferSource.BufferSource buffer = guiGraphics.bufferSource();
-		RenderSystem.runAsFancy(() -> dispatcher.render(creeper, 0, 0, 0, creeperYaw, 0, poseStack, buffer,
-			LightTexture.FULL_BRIGHT));
-		buffer.endBatch();
-		Lighting.setupFor3DItems();
-		dispatcher.setRenderShadow(true);
-
-		poseStack.popPose();
+		entityElement(creeper)
+			.at(xOffset, yOffset, PRESS_RENDER_Z)
+			.atLocal(0.5d, CREEPER_ATTACHMENT_Y, 0.5d)
+			.rotate(-15.5d, 22.5d, 0d)
+			.dispatcherYaw(0f)
+			.scale(PRESS_SCALE)
+			.scaleEntity(appliedHorizontalScale, appliedVerticalScale, appliedHorizontalScale)
+			.ticks(Mth.floor(AnimationTickHolder.getRenderTime()))
+			.render(guiGraphics);
 	}
 
 	private float getAnimatedHeadOffset() {
