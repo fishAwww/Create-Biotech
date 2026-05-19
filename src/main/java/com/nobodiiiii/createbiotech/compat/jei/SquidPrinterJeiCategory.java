@@ -2,15 +2,13 @@ package com.nobodiiiii.createbiotech.compat.jei;
 
 import java.util.List;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.nobodiiiii.createbiotech.CreateBiotech;
+import com.nobodiiiii.createbiotech.content.squidprinter.SquidPrinterBlockEntity;
 import com.nobodiiiii.createbiotech.registry.CBBlocks;
-import com.nobodiiiii.createbiotech.registry.CBItems;
 import com.simibubi.create.compat.jei.category.CreateRecipeCategory;
 import com.simibubi.create.compat.jei.category.animations.AnimatedSpout;
 import com.simibubi.create.foundation.gui.AllGuiTextures;
 
-import mezz.jei.api.forge.ForgeTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
@@ -23,6 +21,8 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraftforge.fluids.FluidStack;
 
 public class SquidPrinterJeiCategory extends AbstractRecipeCategory<SquidPrinterJeiRecipe> {
 
@@ -30,7 +30,7 @@ public class SquidPrinterJeiCategory extends AbstractRecipeCategory<SquidPrinter
 		RecipeType.create(CreateBiotech.MOD_ID, "squid_printer", SquidPrinterJeiRecipe.class);
 
 	private static final int WIDTH = 177;
-	private static final int HEIGHT = 85;
+	private static final int HEIGHT = 60;
 
 	private final AnimatedSpout spout = new AnimatedSpout();
 
@@ -41,43 +41,33 @@ public class SquidPrinterJeiCategory extends AbstractRecipeCategory<SquidPrinter
 
 	@Override
 	public void setRecipe(IRecipeLayoutBuilder builder, SquidPrinterJeiRecipe recipe, IFocusGroup focuses) {
-		builder.addSlot(RecipeIngredientRole.CATALYST, 6, 6)
-			.setBackground(CreateRecipeCategory.getRenderedSlot(), -1, -1)
-			.addItemStack(new ItemStack(CBBlocks.SQUID_PRINTER.get()));
-
-		builder.addSlot(RecipeIngredientRole.INPUT, 27, 51)
+		builder.addSlot(RecipeIngredientRole.INPUT, 27, 38)
 			.setBackground(CreateRecipeCategory.getRenderedSlot(), -1, -1)
 			.addItemStack(recipe.inputBook().copy());
 
-		builder.addSlot(RecipeIngredientRole.INPUT, 27, 32)
+		builder.addSlot(RecipeIngredientRole.INPUT, 51, 5)
 			.setBackground(CreateRecipeCategory.getRenderedSlot(), -1, -1)
-			.setFluidRenderer(1, false, 16, 16)
-			.addIngredient(ForgeTypes.FLUID_STACK, recipe.water().copy());
+			.addItemStacks(recipe.templateBooks());
 
-		builder.addSlot(RecipeIngredientRole.CATALYST, 152, 6)
+		builder.addSlot(RecipeIngredientRole.OUTPUT, 132, 38)
 			.setBackground(CreateRecipeCategory.getRenderedSlot(), -1, -1)
-			.addItemStack(recipe.templateBook().copy());
-
-		builder.addSlot(RecipeIngredientRole.OUTPUT, 132, 51)
-			.setBackground(CreateRecipeCategory.getRenderedSlot(), -1, -1)
-			.addItemStack(recipe.outputCopy().copy());
+			.addItemStacks(recipe.outputCopies());
 	}
 
 	@Override
 	public void draw(SquidPrinterJeiRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics graphics,
 		double mouseX, double mouseY) {
-		AllGuiTextures.JEI_SHADOW.render(graphics, 62, 57);
-		AllGuiTextures.JEI_DOWN_ARROW.render(graphics, 126, 29);
-		PoseStack ms = graphics.pose();
-		ms.pushPose();
-		spout.withFluids(List.of(recipe.water())).draw(graphics, WIDTH / 2 - 13, 22);
-		ms.popPose();
+		AllGuiTextures.JEI_SHADOW.render(graphics, 62, 47);
+		AllGuiTextures.JEI_DOWN_ARROW.render(graphics, 74, 10);
+		spout.withFluids(List.of(new FluidStack(Fluids.WATER, SquidPrinterBlockEntity.CYCLE_WATER_COST)))
+			.draw(graphics, WIDTH / 2 - 13, 14);
+		SquidJeiRenderer.render(graphics, 89, 47, 9.0f);
 	}
 
 	@Override
 	public void getTooltip(ITooltipBuilder tooltip, SquidPrinterJeiRecipe recipe, IRecipeSlotsView recipeSlotsView,
 		double mouseX, double mouseY) {
-		if (mouseY < 22 || mouseY > 60)
+		if (mouseX < 58 || mouseX > 118 || mouseY < 8 || mouseY > 56)
 			return;
 		for (Component note : recipe.notes()) {
 			tooltip.add(note.copy().withStyle(ChatFormatting.GRAY));
@@ -87,9 +77,5 @@ public class SquidPrinterJeiCategory extends AbstractRecipeCategory<SquidPrinter
 	@Override
 	public ResourceLocation getRegistryName(SquidPrinterJeiRecipe recipe) {
 		return recipe.id();
-	}
-
-	public static ItemStack copyItemForCatalyst() {
-		return new ItemStack(CBItems.SQUID_PRINTER.get());
 	}
 }

@@ -5,6 +5,7 @@ import com.nobodiiiii.createbiotech.content.experience.ExperiencePumpRenderer;
 import com.nobodiiiii.createbiotech.content.experience.ExperienceTankRenderer;
 import com.nobodiiiii.createbiotech.content.biopackager.BioPackagerRenderer;
 import com.nobodiiiii.createbiotech.content.biopackager.BioPackagerVisual;
+import com.nobodiiiii.createbiotech.content.boneratchet.BoneRatchetRenderer;
 import com.nobodiiiii.createbiotech.content.creeperblastchamber.BlastProofChainDriveRenderer;
 import com.nobodiiiii.createbiotech.content.creeperblastchamber.CreeperBlastChamberBlock;
 import com.nobodiiiii.createbiotech.content.creeperblastchamber.CreeperBlastChamberRenderer;
@@ -97,6 +98,7 @@ public class CreateBiotechClient {
 		event.registerBlockEntityRenderer(CBBlockEntityTypes.GHAST_HOT_AIR_BALLOON_ASSEMBLY_STATION.get(),
 			GhastHotAirBalloonAssemblyStationRenderer::new);
 		event.registerBlockEntityRenderer(CBBlockEntityTypes.BIO_PACKAGER.get(), BioPackagerRenderer::new);
+		event.registerBlockEntityRenderer(CBBlockEntityTypes.BONE_RATCHET.get(), BoneRatchetRenderer::new);
 		event.registerEntityRenderer(CBEntityTypes.GHAST_HOT_AIR_BALLOON.get(),
 			GhastHotAirBalloonEntityRenderer::new);
 		event.registerEntityRenderer(CBEntityTypes.GHAST_HOT_AIR_BALLOON_SEAT.get(),

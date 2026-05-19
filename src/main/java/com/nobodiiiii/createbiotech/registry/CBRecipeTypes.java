@@ -5,6 +5,8 @@ import com.nobodiiiii.createbiotech.content.creeperblastchamber.CreeperBlastCham
 import com.nobodiiiii.createbiotech.content.processing.basin.BasinEntityProcessingRecipe;
 import com.nobodiiiii.createbiotech.content.schrodingerscat.SchrodingersCatRecipe;
 import com.nobodiiiii.createbiotech.content.spiderassemblytable.SpiderAssemblyTableRecipe;
+import com.nobodiiiii.createbiotech.content.squidprinter.SquidPrinterRecipe;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipeSerializer;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.crafting.RecipeSerializer;
@@ -37,6 +39,10 @@ public class CBRecipeTypes {
 			RECIPE_SERIALIZERS.register("creeper_blast_chamber_high_pressure",
 				CreeperBlastChamberHighPressureRecipe.Serializer::new);
 
+	public static final RegistryObject<RecipeSerializer<SquidPrinterRecipe>> SQUID_PRINTER_SERIALIZER =
+		RECIPE_SERIALIZERS.register("squid_printer",
+			() -> new ProcessingRecipeSerializer<>(SquidPrinterRecipe::new));
+
 	public static final RegistryObject<RecipeType<BasinEntityProcessingRecipe>> BASIN_ENTITY_PROCESSING_TYPE =
 		RECIPE_TYPES.register("basin_entity_processing",
 			() -> RecipeType.simple(CreateBiotech.asResource("basin_entity_processing")));
@@ -45,6 +51,10 @@ public class CBRecipeTypes {
 		CREEPER_BLAST_CHAMBER_HIGH_PRESSURE_TYPE =
 			RECIPE_TYPES.register("creeper_blast_chamber_high_pressure",
 				() -> RecipeType.simple(CreateBiotech.asResource("creeper_blast_chamber_high_pressure")));
+
+	public static final RegistryObject<RecipeType<SquidPrinterRecipe>> SQUID_PRINTER_TYPE =
+		RECIPE_TYPES.register("squid_printer",
+			() -> RecipeType.simple(CreateBiotech.asResource("squid_printer")));
 
 	private CBRecipeTypes() {}
 

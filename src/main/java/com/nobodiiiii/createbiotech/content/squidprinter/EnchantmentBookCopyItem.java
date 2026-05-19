@@ -45,13 +45,41 @@ public class EnchantmentBookCopyItem extends Item {
 		return tag == null ? new ListTag() : tag.getList(STORED_ENCHANTMENTS_TAG, Tag.TAG_COMPOUND);
 	}
 
-	public static ItemStack fromEnchantedBook(ItemStack enchantedBook, Item copyItem) {
+	public static ListTag getCopySourceEnchantments(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		if (tag != null && tag.contains(STORED_ENCHANTMENTS_TAG, Tag.TAG_LIST))
+			return tag.getList(STORED_ENCHANTMENTS_TAG, Tag.TAG_COMPOUND)
+				.copy();
+		return EnchantedBookItem.getEnchantments(stack)
+			.copy();
+	}
+
+	public static boolean hasCopyableEnchantments(ItemStack stack) {
+		return !getCopySourceEnchantments(stack).isEmpty();
+	}
+
+	public static int sumCopySourceEnchantmentLevels(ItemStack stack) {
+		int total = 0;
+		ListTag enchantments = getCopySourceEnchantments(stack);
+		for (int i = 0; i < enchantments.size(); i++) {
+			CompoundTag entry = enchantments.getCompound(i);
+			total += Math.max(1, entry.getShort("lvl"));
+		}
+		return total;
+	}
+
+	public static ItemStack fromTemplate(ItemStack template, Item copyItem) {
 		ItemStack out = new ItemStack(copyItem);
-		ListTag enchantments = EnchantedBookItem.getEnchantments(enchantedBook);
+		ListTag enchantments = getCopySourceEnchantments(template);
 		if (enchantments.isEmpty())
 			return out;
-		out.getOrCreateTag().put(STORED_ENCHANTMENTS_TAG, enchantments.copy());
+		out.getOrCreateTag()
+			.put(STORED_ENCHANTMENTS_TAG, enchantments);
 		return out;
+	}
+
+	public static ItemStack fromEnchantedBook(ItemStack enchantedBook, Item copyItem) {
+		return fromTemplate(enchantedBook, copyItem);
 	}
 
 	public static ItemStack toEnchantedBook(ItemStack copyStack) {

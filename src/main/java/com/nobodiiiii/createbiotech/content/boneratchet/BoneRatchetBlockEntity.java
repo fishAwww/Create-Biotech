@@ -3,14 +3,15 @@ package com.nobodiiiii.createbiotech.content.boneratchet;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.api.stress.BlockStressValues;
-import com.simibubi.create.content.kinetics.transmission.SplitShaftBlockEntity;
+import com.simibubi.create.content.kinetics.base.DirectionalKineticBlock;
+import com.simibubi.create.content.kinetics.simpleRelays.SimpleKineticBlockEntity;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.core.Direction.AxisDirection;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.state.BlockState;
 
-public class BoneRatchetBlockEntity extends SplitShaftBlockEntity {
+public class BoneRatchetBlockEntity extends SimpleKineticBlockEntity {
 
 	private static final float FALLBACK_JAM_STRESS_IMPACT = 20000f;
 	private static final float CREATIVE_MOTOR_MARGIN = 1024f;
@@ -19,11 +20,6 @@ public class BoneRatchetBlockEntity extends SplitShaftBlockEntity {
 
 	public BoneRatchetBlockEntity(BlockPos pos, BlockState state) {
 		super(CBBlockEntityTypes.BONE_RATCHET.get(), pos, state);
-	}
-
-	@Override
-	public float getRotationSpeedModifier(Direction face) {
-		return 1;
 	}
 
 	@Override
@@ -66,7 +62,12 @@ public class BoneRatchetBlockEntity extends SplitShaftBlockEntity {
 	}
 
 	private boolean isReverseRotation() {
-		return getTheoreticalSpeed() < 0;
+		float speed = getTheoreticalSpeed();
+		if (speed == 0)
+			return false;
+		AxisDirection facingDirection = getBlockState().getValue(DirectionalKineticBlock.FACING).getAxisDirection();
+		boolean positiveIsForward = facingDirection == AxisDirection.POSITIVE;
+		return positiveIsForward ? speed < 0 : speed > 0;
 	}
 
 	private static float getJammingStressImpact() {

@@ -3,6 +3,7 @@ package com.nobodiiiii.createbiotech.content.squidprinter;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.simibubi.create.AllPartialModels;
+import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringRenderer;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour.TankSegment;
 import com.simibubi.create.foundation.blockEntity.renderer.SafeBlockEntityRenderer;
@@ -86,6 +87,7 @@ public class SquidPrinterRenderer extends SafeBlockEntityRenderer<SquidPrinterBl
 		ms.popPose();
 
 		renderSquid(be, partialTicks, ms, buffer, light);
+		FilteringRenderer.renderOnBlockEntity(be, partialTicks, ms, buffer, light, overlay);
 	}
 
 	private void renderFluidInTank(SmartFluidTankBehaviour tank, PoseStack ms, MultiBufferSource buffer, int light,

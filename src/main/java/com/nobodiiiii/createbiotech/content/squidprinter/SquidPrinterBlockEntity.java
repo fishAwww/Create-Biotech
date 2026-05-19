@@ -5,8 +5,8 @@ import static com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessing
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-import com.nobodiiiii.createbiotech.registry.CBItems;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour;
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour.ProcessingResult;
@@ -28,19 +28,23 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;
+import net.minecraftforge.items.ItemStackHandler;
+import net.minecraftforge.items.wrapper.RecipeWrapper;
 
 public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGoggleInformation {
 
-	public static final int FILLING_TIME = 20;
 	public static final int CYCLE_TICKS = 20;
 	public static final int CYCLE_WATER_COST = 50;
 	public static final int TANK_CAPACITY = 1000;
+	public static final int FINISHING_TICKS = 5;
+
+	private static final RecipeWrapper RECIPE_WRAPPER = new RecipeWrapper(new ItemStackHandler(1));
 
 	public int processingTicks;
 	public boolean sendSplash;
@@ -49,14 +53,14 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 	protected BeltProcessingBehaviour beltProcessing;
 	public FilteringBehaviour filtering;
 
-	private int cycleTicker;
 	private boolean running;
+	private ItemStack processingTemplate;
 
 	public SquidPrinterBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
 		processingTicks = -1;
-		cycleTicker = 0;
 		running = false;
+		processingTemplate = ItemStack.EMPTY;
 	}
 
 	@Override
@@ -69,7 +73,7 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 		behaviours.add(beltProcessing);
 
 		filtering = new FilteringBehaviour(this, new SquidPrinterFilterSlot())
-			.withPredicate(stack -> stack.isEmpty() || stack.is(Items.ENCHANTED_BOOK))
+			.withPredicate(stack -> stack.isEmpty() || EnchantmentBookCopyItem.hasCopyableEnchantments(stack))
 			.withCallback(stack -> notifyUpdate());
 		behaviours.add(filtering);
 	}
@@ -86,43 +90,14 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 		if (level == null)
 			return;
 
-		if (!level.isClientSide) {
-			tickRunning();
-		}
-
-		if (processingTicks >= 0)
+		if (running && processingTicks > FINISHING_TICKS)
 			processingTicks--;
 
-		if (processingTicks >= 8 && level.isClientSide)
+		if (level.isClientSide && running && processingTicks >= FINISHING_TICKS + 3)
 			spawnInkParticles();
 
-		if (level.isClientSide && running && level.getGameTime() % 3 == 0)
+		if (level.isClientSide && running && processingTicks > FINISHING_TICKS && level.getGameTime() % 3 == 0)
 			spawnAmbientInk();
-	}
-
-	private void tickRunning() {
-		FluidStack stored = getFluid();
-		boolean canRun = !stored.isEmpty() && stored.getFluid().isSame(Fluids.WATER) && stored.getAmount() >= CYCLE_WATER_COST;
-
-		if (canRun) {
-			cycleTicker++;
-			if (cycleTicker >= CYCLE_TICKS) {
-				cycleTicker = 0;
-				tank.getPrimaryHandler()
-					.drain(CYCLE_WATER_COST, net.minecraftforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE);
-				notifyUpdate();
-			}
-			if (!running) {
-				running = true;
-				notifyUpdate();
-			}
-		} else {
-			cycleTicker = 0;
-			if (running) {
-				running = false;
-				notifyUpdate();
-			}
-		}
 	}
 
 	protected ProcessingResult onItemReceived(TransportedItemStack transported,
@@ -131,28 +106,25 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 			return PASS;
 		if (!isApplicableInput(transported.stack))
 			return PASS;
-		if (!isReady())
-			return HOLD;
 		return HOLD;
 	}
 
 	protected ProcessingResult whenItemHeld(TransportedItemStack transported,
 		TransportedItemStackHandlerBehaviour handler) {
-		if (processingTicks != -1 && processingTicks != 5)
-			return HOLD;
 		if (!isApplicableInput(transported.stack))
 			return PASS;
-		if (!isReady())
-			return HOLD;
 
-		if (processingTicks == -1) {
-			processingTicks = FILLING_TIME;
-			notifyUpdate();
-			return HOLD;
-		}
+		if (processingTicks != -1) {
+			if (processingTicks > FINISHING_TICKS)
+				return HOLD;
 
-		ItemStack out = produceCopy();
-		if (!out.isEmpty()) {
+			ItemStack out = produceCopy();
+			if (out.isEmpty()) {
+				clearProcessingState();
+				notifyUpdate();
+				return HOLD;
+			}
+
 			transported.clearFanProcessingData();
 			List<TransportedItemStack> outList = new ArrayList<>();
 			TransportedItemStack held = null;
@@ -166,9 +138,18 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 			}
 			outList.add(result);
 			handler.handleProcessingOnItem(transported, TransportedResult.convertToAndLeaveHeld(outList, held));
+
+			sendSplash = true;
+			clearProcessingState();
+			notifyUpdate();
+			return HOLD;
 		}
 
-		sendSplash = true;
+		Optional<PreparedRecipe> recipe = findMatchingRecipe(transported.stack);
+		if (recipe.isEmpty())
+			return HOLD;
+
+		startProcessing(recipe.get());
 		notifyUpdate();
 		return HOLD;
 	}
@@ -177,19 +158,56 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 		return stack.is(Items.BOOK);
 	}
 
-	public boolean isReady() {
-		ItemStack template = filtering == null ? ItemStack.EMPTY : filtering.getFilter();
-		if (template.isEmpty() || !template.is(Items.ENCHANTED_BOOK))
-			return false;
+	private Optional<PreparedRecipe> findMatchingRecipe(ItemStack input) {
+		if (level == null)
+			return Optional.empty();
+
+		ItemStack template = getTemplate();
+		if (!EnchantmentBookCopyItem.hasCopyableEnchantments(template))
+			return Optional.empty();
+
+		RECIPE_WRAPPER.setItem(0, input);
+		return level.getRecipeManager()
+			.getRecipesFor(com.nobodiiiii.createbiotech.registry.CBRecipeTypes.SQUID_PRINTER_TYPE.get(), RECIPE_WRAPPER,
+				level)
+			.stream()
+			.filter(recipe -> recipe.matches(RECIPE_WRAPPER, level))
+			.filter(recipe -> recipe.matchesTemplate(template))
+			.map(recipe -> new PreparedRecipe(recipe, template.copyWithCount(1)))
+			.filter(this::hasRequiredFluid)
+			.findFirst();
+	}
+
+	private boolean hasRequiredFluid(PreparedRecipe recipe) {
 		FluidStack stored = getFluid();
-		return !stored.isEmpty() && stored.getFluid().isSame(Fluids.WATER) && stored.getAmount() >= CYCLE_WATER_COST;
+		return recipe.recipe().getRequiredFluid()
+			.test(stored)
+			&& stored.getAmount() >= recipe.recipe()
+				.getRequiredWater(recipe.template());
+	}
+
+	private void startProcessing(PreparedRecipe recipe) {
+		processingTemplate = recipe.template();
+		processingTicks = recipe.recipe()
+			.getRequiredTicks(processingTemplate) + FINISHING_TICKS;
+		tank.getPrimaryHandler()
+			.drain(recipe.recipe()
+				.getRequiredWater(processingTemplate), FluidAction.EXECUTE);
+		running = true;
+	}
+
+	private void clearProcessingState() {
+		processingTicks = -1;
+		running = false;
+		processingTemplate = ItemStack.EMPTY;
+	}
+
+	private ItemStack getTemplate() {
+		return filtering == null ? ItemStack.EMPTY : filtering.getFilter();
 	}
 
 	private ItemStack produceCopy() {
-		ItemStack template = filtering.getFilter();
-		if (template.isEmpty() || !template.is(Items.ENCHANTED_BOOK))
-			return ItemStack.EMPTY;
-		return EnchantmentBookCopyItem.fromEnchantedBook(template, CBItems.ENCHANTMENT_BOOK_COPY.get());
+		return EnchantmentBookCopyItem.fromTemplate(processingTemplate, com.nobodiiiii.createbiotech.registry.CBItems.ENCHANTMENT_BOOK_COPY.get());
 	}
 
 	public FluidStack getFluid() {
@@ -233,8 +251,9 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 	protected void write(CompoundTag compound, boolean clientPacket) {
 		super.write(compound, clientPacket);
 		compound.putInt("ProcessingTicks", processingTicks);
-		compound.putInt("CycleTicker", cycleTicker);
 		compound.putBoolean("Running", running);
+		if (!processingTemplate.isEmpty())
+			compound.put("ProcessingTemplate", processingTemplate.save(new CompoundTag()));
 		if (sendSplash && clientPacket) {
 			compound.putBoolean("Splash", true);
 			sendSplash = false;
@@ -245,8 +264,10 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 	protected void read(CompoundTag compound, boolean clientPacket) {
 		super.read(compound, clientPacket);
 		processingTicks = compound.getInt("ProcessingTicks");
-		cycleTicker = compound.getInt("CycleTicker");
 		running = compound.getBoolean("Running");
+		processingTemplate =
+			compound.contains("ProcessingTemplate") ? ItemStack.of(compound.getCompound("ProcessingTemplate"))
+				: ItemStack.EMPTY;
 	}
 
 	@Override
@@ -265,5 +286,8 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 		if (!sendSplash)
 			return;
 		sendSplash = false;
+	}
+
+	private record PreparedRecipe(SquidPrinterRecipe recipe, ItemStack template) {
 	}
 }

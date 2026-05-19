@@ -1,17 +1,30 @@
 {
   "variants": {
-    "axis=x": {
+    "facing=up": {
+      "model": "create_biotech:block/bone_ratchet/block"
+    },
+    "facing=down": {
+      "model": "create_biotech:block/bone_ratchet/block",
+      "x": 180
+    },
+    "facing=north": {
+      "model": "create_biotech:block/bone_ratchet/block",
+      "x": 90
+    },
+    "facing=south": {
+      "model": "create_biotech:block/bone_ratchet/block",
+      "x": 90,
+      "y": 180
+    },
+    "facing=east": {
       "model": "create_biotech:block/bone_ratchet/block",
       "x": 90,
       "y": 90
     },
-    "axis=y": {
-      "model": "create_biotech:block/bone_ratchet/block"
-    },
-    "axis=z": {
+    "facing=west": {
       "model": "create_biotech:block/bone_ratchet/block",
       "x": 90,
-      "y": 180
+      "y": 270
     }
   }
 }

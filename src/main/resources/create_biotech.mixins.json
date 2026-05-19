@@ -32,7 +32,9 @@
     "client.FunnelVisualMixin",
     "client.GameRendererMixin",
     "client.GoggleOverlayRendererMixin",
+    "client.ItemApplicationCategoryMixin",
     "client.PressingBehaviourMixin",
+    "client.SpoutCategoryMixin",
     "client.LevelRendererAccessor"
   ],
   "injectors": {
