@@ -8,14 +8,9 @@ import com.nobodiiiii.createbiotech.content.squidprinter.EnchantmentBookCopyItem
 import com.nobodiiiii.createbiotech.content.squidprinter.SquidPrinterRecipe;
 import com.nobodiiiii.createbiotech.registry.CBItems;
 import com.nobodiiiii.createbiotech.registry.CBRecipeTypes;
-import com.simibubi.create.content.fluids.transfer.FillingRecipe;
-import com.simibubi.create.content.kinetics.deployer.ItemApplicationRecipe;
-import com.simibubi.create.content.kinetics.deployer.ManualApplicationRecipe;
-import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.ItemStack;
@@ -45,41 +40,10 @@ public final class SquidPrinterJeiRecipes {
 
 		List<SquidPrinterJeiRecipe> displays = new ArrayList<>(recipes.size());
 		for (SquidPrinterRecipe recipe : recipes) {
-			List<Component> notes = List.of(
-				Component.translatable("create_biotech.jei.squid_printer.note.template"),
-				Component.translatable("create_biotech.jei.squid_printer.note.water_cost", recipe.getWaterPerLevel(),
-					recipe.getTicksPerLevel()));
-			displays.add(new SquidPrinterJeiRecipe(recipe.getId(), new ItemStack(Items.BOOK), templateBooks,
-				outputCopies, notes));
+			displays.add(new SquidPrinterJeiRecipe(recipe.getId(), new ItemStack(Items.BOOK), recipe.getRequiredFluid(),
+				templateBooks, outputCopies));
 		}
 		return displays;
-	}
-
-	public static List<ItemApplicationRecipe> createItemApplicationRecipes() {
-		ItemStack previewOutput = getPreviewOutput();
-		return getRecipes().stream()
-			.map(recipe -> new ProcessingRecipeBuilder<>(ManualApplicationRecipe::new,
-				CreateBiotech.asResource(ITEM_APPLICATION_PREFIX + recipe.getId().getPath()))
-					.require(recipe.getIngredients()
-						.get(0))
-					.require(Items.ENCHANTED_BOOK)
-					.output(previewOutput.copy())
-					.toolNotConsumed()
-					.build())
-			.map(recipe -> (ItemApplicationRecipe) recipe)
-			.toList();
-	}
-
-	public static List<FillingRecipe> createSpoutRecipes() {
-		ItemStack previewOutput = getPreviewOutput();
-		return getRecipes().stream()
-			.map(recipe -> new ProcessingRecipeBuilder<>(FillingRecipe::new,
-				CreateBiotech.asResource(SPOUT_FILLING_PREFIX + recipe.getId().getPath()))
-					.withItemIngredients(recipe.getIngredients())
-					.withFluidIngredients(recipe.getFluidIngredients())
-					.withSingleItemOutput(previewOutput.copy())
-					.build())
-			.toList();
 	}
 
 	public static boolean isSquidPrinterItemApplication(ResourceLocation id) {
@@ -92,13 +56,6 @@ public final class SquidPrinterJeiRecipes {
 		return id.getNamespace()
 			.equals(CreateBiotech.MOD_ID) && id.getPath()
 				.startsWith(SPOUT_FILLING_PREFIX);
-	}
-
-	private static ItemStack getPreviewOutput() {
-		List<ItemStack> templates = createTemplateSamples();
-		if (templates.isEmpty())
-			return new ItemStack(CBItems.ENCHANTMENT_BOOK_COPY.get());
-		return EnchantmentBookCopyItem.fromTemplate(templates.get(0), CBItems.ENCHANTMENT_BOOK_COPY.get());
 	}
 
 	private static List<SquidPrinterRecipe> getRecipes() {

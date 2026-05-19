@@ -42,9 +42,7 @@ public final class SquidJeiRenderer {
 
 		poseStack.pushPose();
 		poseStack.translate(centerX, centerY, 150.0f);
-		poseStack.mulPose(Axis.XP.rotationDegrees(180.0f));
-		poseStack.mulPose(Axis.YP.rotationDegrees(180.0f));
-		poseStack.scale(scale, scale, scale);
+		poseStack.scale(scale, scale, -scale);
 		renderSquidModel(poseStack, buffer, FULL_BRIGHT, AnimationTickHolder.getRenderTime());
 		buffer.endBatch();
 		poseStack.popPose();

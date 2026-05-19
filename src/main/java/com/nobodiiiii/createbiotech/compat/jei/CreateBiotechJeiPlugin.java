@@ -10,7 +10,6 @@ import com.nobodiiiii.createbiotech.registry.CBItems;
 import com.nobodiiiii.createbiotech.registry.CBRecipeTypes;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.Create;
-import com.simibubi.create.content.fluids.transfer.FillingRecipe;
 import com.simibubi.create.content.kinetics.crusher.AbstractCrushingRecipe;
 import com.simibubi.create.content.kinetics.deployer.ItemApplicationRecipe;
 import com.simibubi.create.content.kinetics.deployer.ManualApplicationRecipe;
@@ -39,8 +38,6 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 		new RecipeType<>(Create.asResource("crushing"), AbstractCrushingRecipe.class);
 	private static final RecipeType<ItemApplicationRecipe> CREATE_ITEM_APPLICATION =
 		new RecipeType<>(Create.asResource("item_application"), ItemApplicationRecipe.class);
-	private static final RecipeType<FillingRecipe> CREATE_SPOUT_FILLING =
-		new RecipeType<>(Create.asResource("spout_filling"), FillingRecipe.class);
 
 	@Override
 	public ResourceLocation getPluginUid() {
@@ -70,7 +67,6 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 		registration.addRecipes(ExperiencePumpJeiCategory.TYPE, ExperienceJeiRecipes.pump());
 		registration.addRecipes(CREATE_PACKING, basinEntityProcessingPackingRecipes());
 		registration.addRecipes(CREATE_ITEM_APPLICATION, itemApplicationRecipes());
-		registration.addRecipes(CREATE_SPOUT_FILLING, SquidPrinterJeiRecipes.createSpoutRecipes());
 	}
 
 	@Override
@@ -79,8 +75,6 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 		registration.addRecipeCatalyst(CBBlocks.CREEPER_BLAST_CHAMBER.get(),
 			CreeperBlastChamberHighPressureJeiCategory.TYPE);
 		registration.addRecipeCatalyst(new ItemStack(CBBlocks.SQUID_PRINTER.get()), SquidPrinterJeiCategory.TYPE);
-		registration.addRecipeCatalyst(new ItemStack(CBBlocks.SQUID_PRINTER.get()), CREATE_ITEM_APPLICATION);
-		registration.addRecipeCatalyst(new ItemStack(CBBlocks.SQUID_PRINTER.get()), CREATE_SPOUT_FILLING);
 		registration.addRecipeCatalyst(new ItemStack(CBBlocks.EVOKER_ENCHANTING_CHAMBER.get()),
 			EvokerEnchantingChamberJeiCategory.TYPE);
 		registration.addRecipeCatalyst(new ItemStack(CBBlocks.EXPERIENCE_CRYSTALLIZER.get()),
@@ -134,9 +128,6 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 	}
 
 	private static List<ItemApplicationRecipe> itemApplicationRecipes() {
-		List<ItemApplicationRecipe> recipes = new java.util.ArrayList<>();
-		recipes.add(powerBeltConversion());
-		recipes.addAll(SquidPrinterJeiRecipes.createItemApplicationRecipes());
-		return recipes;
+		return List.of(powerBeltConversion());
 	}
 }

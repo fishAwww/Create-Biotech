@@ -30,6 +30,7 @@
   "item.create_biotech.experience": "Experience",
   "item.create_biotech.experience.tooltip": "Internal display item",
   "block.create_biotech.squid_printer": "Squid Printer",
+  "create_biotech.recipe.printing": "Printing",
   "item.create_biotech.enchantment_book_copy": "Enchanted Book (Copy)",
   "create_biotech.jei.squid_printer.note.template": "Mark a template enchantment book on the side",
   "create_biotech.jei.squid_printer.note.water_cost": "Each enchantment level takes %2$s ticks and consumes %1$s mB of water",

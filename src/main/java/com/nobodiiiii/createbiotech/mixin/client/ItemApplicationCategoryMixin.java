@@ -1,5 +1,6 @@
 package com.nobodiiiii.createbiotech.mixin.client;
 
+import com.simibubi.create.content.kinetics.deployer.ItemApplicationRecipe;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -9,19 +10,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.nobodiiiii.createbiotech.compat.jei.SquidJeiRenderer;
 import com.nobodiiiii.createbiotech.compat.jei.SquidPrinterJeiRecipes;
 
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.world.item.crafting.Recipe;
 
 @Pseudo
 @Mixin(targets = "com.simibubi.create.compat.jei.category.ItemApplicationCategory", remap = false)
 public abstract class ItemApplicationCategoryMixin {
 
 	@Inject(method = "draw", at = @At("TAIL"), remap = false)
-	private void createBiotech$drawSquid(Object recipe, Object recipeSlotsView, GuiGraphics graphics, double mouseX,
+	private void createBiotech$drawSquid(ItemApplicationRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics graphics, double mouseX,
 		double mouseY, CallbackInfo ci) {
-		if (!(recipe instanceof Recipe<?> mcRecipe))
-			return;
-		if (!SquidPrinterJeiRecipes.isSquidPrinterItemApplication(mcRecipe.getId()))
+		if (!SquidPrinterJeiRecipes.isSquidPrinterItemApplication(recipe.getId()))
 			return;
 		SquidJeiRenderer.render(graphics, 88, 48, 8.5f);
 	}
