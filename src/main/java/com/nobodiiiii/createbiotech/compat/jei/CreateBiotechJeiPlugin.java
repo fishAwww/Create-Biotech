@@ -3,6 +3,7 @@ package com.nobodiiiii.createbiotech.compat.jei;
 import java.util.List;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
+import com.nobodiiiii.createbiotech.content.creeperblastchamber.CreeperBlastChamberHighPressureRecipe;
 import com.nobodiiiii.createbiotech.content.processing.basin.BasinEntityProcessingRecipe;
 import com.nobodiiiii.createbiotech.registry.CBBlocks;
 import com.nobodiiiii.createbiotech.registry.CBItems;
@@ -13,7 +14,6 @@ import com.simibubi.create.content.kinetics.crusher.AbstractCrushingRecipe;
 import com.simibubi.create.content.kinetics.deployer.ItemApplicationRecipe;
 import com.simibubi.create.content.kinetics.deployer.ManualApplicationRecipe;
 import com.simibubi.create.content.kinetics.mixer.CompactingRecipe;
-import com.simibubi.create.content.kinetics.press.PressingRecipe;
 import com.simibubi.create.content.processing.basin.BasinRecipe;
 import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder;
 
@@ -60,7 +60,7 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 			SlimeTransformationJeiRecipe.beltToSlimeBelt(),
 			SlimeTransformationJeiRecipe.beltToMagmaBelt()));
 		registration.addRecipes(CreeperBlastChamberHighPressureJeiCategory.TYPE,
-			CreeperBlastChamberHighPressureJeiRecipes.create());
+			creeperBlastChamberHighPressureRecipes());
 		registration.addRecipes(SquidPrinterJeiCategory.TYPE, SquidPrinterJeiRecipes.create());
 		registration.addRecipes(EvokerEnchantingChamberJeiCategory.TYPE, EvokerEnchantingChamberJeiRecipes.create());
 		registration.addRecipes(ExperienceCrystallizerJeiCategory.TYPE, ExperienceJeiRecipes.crystallizer());
@@ -93,6 +93,16 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 			.stream()
 			.map(CreateBiotechJeiPlugin::asPackingRecipe)
 			.toList();
+	}
+
+	private static List<CreeperBlastChamberHighPressureRecipe> creeperBlastChamberHighPressureRecipes() {
+		ClientPacketListener connection = Minecraft.getInstance()
+			.getConnection();
+		if (connection == null)
+			return List.of();
+
+		return connection.getRecipeManager()
+			.getAllRecipesFor(CBRecipeTypes.CREEPER_BLAST_CHAMBER_HIGH_PRESSURE_TYPE.get());
 	}
 
 	private static BasinRecipe asPackingRecipe(BasinEntityProcessingRecipe recipe) {

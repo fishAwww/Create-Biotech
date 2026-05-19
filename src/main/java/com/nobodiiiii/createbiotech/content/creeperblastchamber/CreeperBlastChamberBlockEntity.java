@@ -26,6 +26,7 @@ import com.nobodiiiii.createbiotech.mixin.client.CreeperAccessor;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 import com.nobodiiiii.createbiotech.registry.CBBlocks;
 import com.nobodiiiii.createbiotech.registry.CBItems;
+import com.nobodiiiii.createbiotech.registry.CBRecipeTypes;
 import com.simibubi.create.AllRecipeTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
@@ -57,12 +58,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.monster.Creeper;
-import net.minecraft.world.entity.monster.WitherSkeleton;
-import net.minecraft.world.entity.monster.Zombie;
-import net.minecraft.world.entity.monster.piglin.Piglin;
-import net.minecraft.world.entity.monster.AbstractSkeleton;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
@@ -112,7 +108,6 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 	private static final int OVERLOAD_TNT_EQUIVALENT_PER_CREEPER = 2;
 	private static final int CHARGED_CREEPER_EQUIVALENT_MULTIPLIER = 2;
 	private static final float TNT_EXPLOSION_POWER = 4f;
-	private static final float HIGH_PRESSURE_COAL_TO_DIAMOND_CHANCE = 0.25f;
 	private static final float CLIENT_PRESS_EFFECT_START_OFFSET = 0.4f;
 	private static final float CLIENT_RETURN_EFFECT_ARM_THRESHOLD = 0.95f;
 	private static final float CLIENT_PRESS_RETURN_EPSILON = 0.001f;
@@ -124,6 +119,7 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 	private static final double CLIENT_RETURN_EXPLOSION_SIZE_PARAM_MIN = 0.15d;
 	private static final double CLIENT_RETURN_EXPLOSION_SIZE_PARAM_MAX = 0.95d;
 	private static final RecipeWrapper CRUSHING_RECIPE_WRAPPER = new RecipeWrapper(new ItemStackHandler(1));
+	private static final RecipeWrapper HIGH_PRESSURE_RECIPE_WRAPPER = new RecipeWrapper(new ItemStackHandler(1));
 	private static final Map<UUID, ClientTrackedCreeper> CLIENT_TRACKED_CREEPERS = new HashMap<>();
 	private static final Map<Long, BlockPos> CLIENT_PRESS_CONTROLLERS = new HashMap<>();
 
@@ -1096,7 +1092,9 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 		ItemStack singleInput = stackToProcess.copy();
 		singleInput.setCount(1);
 
-		List<ItemStack> outputs = rollHighPressureResults(singleInput);
+		Optional<CreeperBlastChamberHighPressureRecipe> recipe = findHighPressureRecipe(singleInput);
+		List<ItemStack> outputs = recipe.map(CreeperBlastChamberHighPressureRecipe::rollResults)
+			.orElse(List.of());
 		if (!canFullyInsertAll(outputHandler, outputs))
 			return ProcessingAttemptResult.BLOCKED_OUTPUT;
 
@@ -1131,25 +1129,15 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 		return outputs;
 	}
 
-	private List<ItemStack> rollHighPressureResults(ItemStack input) {
-		List<ItemStack> outputs = new ArrayList<>();
+	private Optional<CreeperBlastChamberHighPressureRecipe> findHighPressureRecipe(ItemStack stack) {
 		Level level = getLevel();
-		if (level == null || input.isEmpty())
-			return outputs;
+		if (level == null || stack.isEmpty())
+			return Optional.empty();
 
-		if (input.is(Items.COAL)) {
-			if (level.random.nextFloat() < HIGH_PRESSURE_COAL_TO_DIAMOND_CHANCE)
-				outputs.add(new ItemStack(Items.DIAMOND));
-			return outputs;
-		}
-
-		if (!CapturedEntityBoxHelper.hasCapturedEntity(input))
-			return outputs;
-
-		ItemStack mobHead = getCapturedMobHead(input);
-		if (!mobHead.isEmpty())
-			outputs.add(mobHead);
-		return outputs;
+		HIGH_PRESSURE_RECIPE_WRAPPER.setItem(0, stack);
+		return level.getRecipeManager()
+			.getRecipeFor(CBRecipeTypes.CREEPER_BLAST_CHAMBER_HIGH_PRESSURE_TYPE.get(), HIGH_PRESSURE_RECIPE_WRAPPER,
+				level);
 	}
 
 	private boolean canFullyInsertAll(IItemHandler outputHandler, List<ItemStack> outputs) {
@@ -1836,27 +1824,6 @@ public class CreeperBlastChamberBlockEntity extends SyncedBlockEntity implements
 		if (entityId == null || !entityId.equals(ForgeRegistries.ENTITY_TYPES.getKey(EntityType.CREEPER)))
 			return ChamberCreeperKind.NONE;
 		return entityData.getBoolean("powered") ? ChamberCreeperKind.CHARGED : ChamberCreeperKind.NORMAL;
-	}
-
-	private ItemStack getCapturedMobHead(ItemStack capturedEntityBox) {
-		Level level = getLevel();
-		if (level == null)
-			return ItemStack.EMPTY;
-
-		Entity entity = CapturedEntityBoxHelper.createCapturedEntity(capturedEntityBox, level);
-		if (entity instanceof WitherSkeleton)
-			return new ItemStack(Items.WITHER_SKELETON_SKULL);
-		if (entity instanceof AbstractSkeleton)
-			return new ItemStack(Items.SKELETON_SKULL);
-		if (entity instanceof Zombie)
-			return new ItemStack(Items.ZOMBIE_HEAD);
-		if (entity instanceof Piglin)
-			return new ItemStack(Items.PIGLIN_HEAD);
-		if (entity instanceof Creeper)
-			return new ItemStack(Items.CREEPER_HEAD);
-		if (entity instanceof EnderDragon)
-			return new ItemStack(Items.DRAGON_HEAD);
-		return ItemStack.EMPTY;
 	}
 
 	@Nullable

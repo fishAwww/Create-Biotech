@@ -42,6 +42,7 @@
   "create_biotech.jei.experience_crystallizer.note": "3 XP 转化为 1 个经验粒",
   "create_biotech.jei.experience_pump.note.nuggets": "从容器中抽取机械动力经验粒，并将每个经验粒转化为 3 XP",
   "create_biotech.jei.experience_pump.note.open_output": "开放或带分散网的输出端会发射原版经验球",
+  "create_biotech.recipe.processing.random_amount": "随机数量：%s-%s",
   "block.create_biotech.fixed_carrot_fishing_rod": "固定的钓杆",
   "block.create_biotech.magma_belt": "岩浆怪传送带",
   "item.create_biotech.magma_belt_connector": "岩浆怪传送带",

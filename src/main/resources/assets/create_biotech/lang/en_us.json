@@ -42,6 +42,7 @@
   "create_biotech.jei.experience_crystallizer.note": "3 XP becomes 1 Experience Nugget",
   "create_biotech.jei.experience_pump.note.nuggets": "Pulls Create Experience Nuggets from inventories and converts each to 3 XP",
   "create_biotech.jei.experience_pump.note.open_output": "Open or nozzle output emits stored XP as vanilla experience orbs",
+  "create_biotech.recipe.processing.random_amount": "Random Amount: %s-%s",
   "block.create_biotech.fixed_carrot_fishing_rod": "Fixed Fishing Rod",
   "block.create_biotech.magma_belt": "Magma Cube Belt",
   "item.create_biotech.magma_belt_connector": "Magma Cube Belt",

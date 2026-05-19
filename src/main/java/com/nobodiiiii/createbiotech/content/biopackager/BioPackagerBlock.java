@@ -132,12 +132,12 @@ public class BioPackagerBlock extends WrenchableDirectionalBlock implements IBE<
 		if (behaviour != null)
 			behaviour.onNeighborChanged(fromPos);
 
+		boolean powered = worldIn.hasNeighborSignal(pos);
 		boolean previouslyPowered = state.getValue(POWERED);
-		if (previouslyPowered == worldIn.hasNeighborSignal(pos))
+		if (previouslyPowered == powered)
 			return;
-		worldIn.setBlock(pos, state.cycle(POWERED), 2);
-		if (!previouslyPowered)
-			withBlockEntityDo(worldIn, pos, BioPackagerBlockEntity::activate);
+		worldIn.setBlock(pos, state.setValue(POWERED, powered), 2);
+		withBlockEntityDo(worldIn, pos, be -> be.onRedstoneUpdate(powered));
 	}
 
 	@Override

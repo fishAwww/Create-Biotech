@@ -62,7 +62,7 @@ public class BioPackagerBlockEntity extends SmartBlockEntity {
 
 		if (animationTicks == 0) {
 			previouslyUnwrapped = ItemStack.EMPTY;
-			if (!level.isClientSide && heldBox.isEmpty())
+			if (!level.isClientSide && heldBox.isEmpty() && isRedstonePowered())
 				attemptAutoExtract();
 			return;
 		}
@@ -104,7 +104,7 @@ public class BioPackagerBlockEntity extends SmartBlockEntity {
 	}
 
 	public boolean startUnpacking(ItemStack box) {
-		if (!heldBox.isEmpty() || animationTicks > 0)
+		if (!heldBox.isEmpty() || animationTicks > 0 || !isRedstonePowered())
 			return false;
 		heldBox = box.copy();
 		previouslyUnwrapped = ItemStack.EMPTY;
@@ -163,11 +163,21 @@ public class BioPackagerBlockEntity extends SmartBlockEntity {
 		// kept for parity with packager-style neighbor change hook
 	}
 
-	public void activate() {
-		redstonePowered = true;
+	public boolean isRedstonePowered() {
+		if (level == null)
+			return redstonePowered;
+		return getBlockState().getOptionalValue(BioPackagerBlock.POWERED).orElse(redstonePowered);
+	}
+
+	public void onRedstoneUpdate(boolean powered) {
+		redstonePowered = powered;
 		setChanged();
-		if (!level.isClientSide && heldBox.isEmpty() && animationTicks == 0)
+		if (!level.isClientSide && powered && heldBox.isEmpty() && animationTicks == 0)
 			attemptAutoExtract();
+	}
+
+	public void activate() {
+		onRedstoneUpdate(true);
 	}
 
 	@Override
