@@ -52,6 +52,7 @@ import com.simibubi.create.content.kinetics.simpleRelays.encased.EncasedCogVisua
 import com.simibubi.create.foundation.block.connected.CTModel;
 import com.simibubi.create.foundation.block.connected.SimpleCTBehaviour;
 
+import dev.engine_room.flywheel.lib.model.Models;
 import dev.engine_room.flywheel.lib.visualization.SimpleBlockEntityVisualizer;
 import dev.engine_room.flywheel.lib.visualization.SimpleEntityVisualizer;
 
@@ -115,6 +116,7 @@ public class CreateBiotechClient {
 		event.register(CreateBiotech.asResource("block/blast_chamber_display/panel"));
 		event.register(CreateBiotech.asResource("block/blast_chamber_display/dial"));
 		event.register(CreateBiotech.asResource("block/blast_chamber_display/creeper_face"));
+		event.register(BoneRatchetRenderer.COGWHEEL_MODEL_LOCATION);
 		event.register(CreateBiotech.asResource("block/schrodingers_cat/redstone_torch_on"));
 		event.register(CreateBiotech.asResource("block/schrodingers_cat/redstone_torch_off"));
 		event.register(CreateBiotech.asResource("block/spider_assembly_table/body"));
@@ -162,7 +164,8 @@ public class CreateBiotechClient {
 				.neverSkipVanillaRender()
 				.apply();
 			SimpleBlockEntityVisualizer.builder(CBBlockEntityTypes.BONE_RATCHET.get())
-				.factory(EncasedCogVisual::small)
+				.factory((context, blockEntity, partialTick) -> new EncasedCogVisual(context, blockEntity, false,
+					partialTick, Models.partial(BoneRatchetRenderer.COGWHEEL)))
 				.apply();
 			ItemBlockRenderTypes.setRenderLayer(CBBlocks.BIO_PACKAGER.get(), RenderType.cutoutMipped());
 			ItemBlockRenderTypes.setRenderLayer(CBBlocks.EXPERIENCE_PUMP.get(), RenderType.cutoutMipped());

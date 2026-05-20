@@ -1,4 +1,11 @@
 {
   "parent": "create:block/encased_cogwheel/block_top_bottom",
-  "render_type": "minecraft:cutout"
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "1": "minecraft:block/stripped_spruce_log_top",
+    "4": "create:block/gearbox",
+    "casing": "create:block/andesite_casing",
+    "particle": "create:block/andesite_casing",
+    "side": "create_biotech:block/bone_ratchet_side"
+  }
 }
