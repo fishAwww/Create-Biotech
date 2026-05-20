@@ -4,9 +4,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.nobodiiiii.createbiotech.foundation.render.BlockEntityModelElement;
-import com.simibubi.create.AllBlocks;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.BookModel;
 import net.minecraft.client.model.IllagerModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelPart;
@@ -17,21 +17,49 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.monster.Evoker;
 import net.minecraft.world.entity.monster.SpellcasterIllager;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.Property;
 
 public class EvokerEnchantingChamberRenderer implements BlockEntityRenderer<EvokerEnchantingChamberBlockEntity> {
 
 	private static final ResourceLocation EVOKER_TEXTURE =
 		new ResourceLocation("minecraft", "textures/entity/illager/evoker.png");
-	private static final float EVOKER_SCALE = 0.7f;
+	private static final ResourceLocation BOOK_TEXTURE =
+		new ResourceLocation("minecraft", "textures/entity/enchanting_table_book.png");
+
+	private static final float ENCHANTING_TABLE_TOP_Y = 14f / 16f;
+	private static final float UPPER_BLOCK_TOP_Y = 1.95f;
+	private static final float EVOKER_BODY_HEIGHT_UNITS = 22f;
+	private static final float EVOKER_SCALE =
+		(UPPER_BLOCK_TOP_Y - ENCHANTING_TABLE_TOP_Y) * 16f / EVOKER_BODY_HEIGHT_UNITS;
+	private static final float EVOKER_ROOT_Y = ENCHANTING_TABLE_TOP_Y + 12f / 16f * EVOKER_SCALE;
+	private static final float EVOKER_BACK_GAP = 1f / 16f;
+	private static final float EVOKER_BACK_HALF_DEPTH = 3f / 16f * EVOKER_SCALE;
+	private static final float EVOKER_BACK_OFFSET_FROM_CENTER =
+		0.5f - (EVOKER_BACK_HALF_DEPTH + EVOKER_BACK_GAP);
+
+	private static final float BOOK_FRONT_OFFSET = 4f / 16f;
+	private static final float BOOK_BASE_Y = ENCHANTING_TABLE_TOP_Y + 4f / 16f;
+	private static final float BOOK_BOB_AMPLITUDE = 0.04f;
+	private static final float BOOK_BOB_SPEED = 0.08f;
+	private static final float BOOK_Z_ROTATION = 80f;
+
+	private static final float ITEM_BASE_Y = BOOK_BASE_Y + 6f / 16f;
+	private static final float ITEM_BOB_AMPLITUDE = 0.06f;
+	private static final float ITEM_BOB_SPEED = 0.1f;
+	private static final float ITEM_SPIN_SPEED = 2.5f;
+	private static final float ITEM_SCALE = 0.7f;
+
+	private static final float HEAD_X_ROT = 0.08726646f;
 	private static final float RIGHT_LEG_X_ROT = -1.4137167f;
 	private static final float RIGHT_LEG_Y_ROT = 0.31415927f;
 	private static final float RIGHT_LEG_Z_ROT = 0.07853982f;
@@ -41,41 +69,84 @@ public class EvokerEnchantingChamberRenderer implements BlockEntityRenderer<Evok
 
 	private final BlockRenderDispatcher blockRenderer;
 	private final IllagerModel<RenderEvoker> evokerModel;
-	private final BlockState tankState;
+	private final BookModel bookModel;
+	private final BlockState enchantingTableState;
 	private RenderEvoker cachedEvoker;
 	private ClientLevel cachedLevel;
 
 	public EvokerEnchantingChamberRenderer(BlockEntityRendererProvider.Context context) {
 		blockRenderer = context.getBlockRenderDispatcher();
 		evokerModel = new IllagerModel<>(context.bakeLayer(ModelLayers.EVOKER));
-		tankState = configureTankState(AllBlocks.FLUID_TANK.getDefaultState());
+		bookModel = new BookModel(context.bakeLayer(ModelLayers.BOOK));
+		enchantingTableState = Blocks.ENCHANTING_TABLE.defaultBlockState();
 	}
 
 	@Override
 	public void render(EvokerEnchantingChamberBlockEntity blockEntity, float partialTick, PoseStack poseStack,
 		MultiBufferSource buffer, int packedLight, int packedOverlay) {
-		renderTank(poseStack, buffer, packedLight, packedOverlay);
+		Direction facing = blockEntity.getBlockState().getValue(EvokerEnchantingChamberBlock.FACING);
 
-		RenderEvoker evoker = getOrCreateEvoker(blockEntity.getLevel());
-		if (evoker != null) {
-			prepareEvokerModel(evoker, blockEntity, partialTick);
-
-			BlockEntityModelElement.builder()
-				.atLocal(0.5d, 1.55d, 0.5d)
-				.rotateY(180.0f - blockEntity.getBlockState().getValue(EvokerEnchantingChamberBlock.FACING).toYRot())
-				.scale(-EVOKER_SCALE, -EVOKER_SCALE, EVOKER_SCALE)
-				.packedLight(packedLight)
-				.render(poseStack, buffer, (ms, buf, lightArg) -> {
-					VertexConsumer consumer = buf.getBuffer(evokerModel.renderType(EVOKER_TEXTURE));
-					evokerModel.renderToBuffer(ms, consumer, lightArg, OverlayTexture.NO_OVERLAY, 1.0f, 1.0f, 1.0f, 1.0f);
-				});
-		}
-
-		renderHeldItem(blockEntity, partialTick, poseStack, buffer, packedLight, packedOverlay);
+		renderEnchantingTable(poseStack, buffer, packedLight, packedOverlay);
+		renderEvoker(blockEntity, partialTick, poseStack, buffer, packedLight, facing);
+		renderBook(blockEntity, partialTick, poseStack, buffer, packedLight, packedOverlay, facing);
+		renderEnchantingItem(blockEntity, partialTick, poseStack, buffer, packedLight, packedOverlay, facing);
 	}
 
-	private void renderHeldItem(EvokerEnchantingChamberBlockEntity be, float partialTick, PoseStack poseStack,
-		MultiBufferSource buffer, int packedLight, int packedOverlay) {
+	private void renderEnchantingTable(PoseStack poseStack, MultiBufferSource buffer, int packedLight,
+		int packedOverlay) {
+		poseStack.pushPose();
+		blockRenderer.renderSingleBlock(enchantingTableState, poseStack, buffer, packedLight, packedOverlay);
+		poseStack.popPose();
+	}
+
+	private void renderEvoker(EvokerEnchantingChamberBlockEntity blockEntity, float partialTick, PoseStack poseStack,
+		MultiBufferSource buffer, int packedLight, Direction facing) {
+		RenderEvoker evoker = getOrCreateEvoker(blockEntity.getLevel());
+		if (evoker == null)
+			return;
+
+		prepareEvokerModel(evoker, blockEntity, partialTick);
+
+		double rootX = 0.5d - facing.getStepX() * EVOKER_BACK_OFFSET_FROM_CENTER;
+		double rootZ = 0.5d - facing.getStepZ() * EVOKER_BACK_OFFSET_FROM_CENTER;
+
+		BlockEntityModelElement.builder()
+			.atLocal(rootX, EVOKER_ROOT_Y, rootZ)
+			.rotateY(180.0f - facing.toYRot())
+			.scale(-EVOKER_SCALE, -EVOKER_SCALE, EVOKER_SCALE)
+			.packedLight(packedLight)
+			.render(poseStack, buffer, (ms, buf, lightArg) -> {
+				VertexConsumer consumer = buf.getBuffer(evokerModel.renderType(EVOKER_TEXTURE));
+				evokerModel.renderToBuffer(ms, consumer, lightArg, OverlayTexture.NO_OVERLAY, 1f, 1f, 1f, 1f);
+			});
+	}
+
+	private void renderBook(EvokerEnchantingChamberBlockEntity be, float partialTick, PoseStack poseStack,
+		MultiBufferSource buffer, int packedLight, int packedOverlay, Direction facing) {
+		Level level = be.getLevel();
+		float time = level == null ? 0f : level.getGameTime() + partialTick;
+		float bob = Mth.sin(time * BOOK_BOB_SPEED) * BOOK_BOB_AMPLITUDE;
+
+		double bookX = 0.5d + facing.getStepX() * BOOK_FRONT_OFFSET;
+		double bookZ = 0.5d + facing.getStepZ() * BOOK_FRONT_OFFSET;
+		double bookY = BOOK_BASE_Y + bob;
+
+		float bookYRot = (180f - facing.toYRot()) - 90f;
+		float pageFlutter = Mth.sin(time * 0.135f) * 0.05f;
+
+		poseStack.pushPose();
+		poseStack.translate(bookX, bookY, bookZ);
+		poseStack.mulPose(Axis.YP.rotationDegrees(bookYRot));
+		poseStack.mulPose(Axis.ZP.rotationDegrees(BOOK_Z_ROTATION));
+
+		bookModel.setupAnim(time, pageFlutter, pageFlutter, 1.0f);
+		VertexConsumer bookConsumer = buffer.getBuffer(bookModel.renderType(BOOK_TEXTURE));
+		bookModel.renderToBuffer(poseStack, bookConsumer, packedLight, packedOverlay, 1f, 1f, 1f, 1f);
+		poseStack.popPose();
+	}
+
+	private void renderEnchantingItem(EvokerEnchantingChamberBlockEntity be, float partialTick, PoseStack poseStack,
+		MultiBufferSource buffer, int packedLight, int packedOverlay, Direction facing) {
 		ItemStack toDisplay;
 		if (be.isCastingSpell())
 			toDisplay = be.getHeldItem();
@@ -87,30 +158,23 @@ public class EvokerEnchantingChamberRenderer implements BlockEntityRenderer<Evok
 		if (toDisplay.isEmpty())
 			return;
 
-		ItemRenderer itemRenderer = Minecraft.getInstance().getItemRenderer();
-		poseStack.pushPose();
-		poseStack.translate(0.5d, 1.05d, 0.5d);
-
-		float bob = 0.0f;
-		float spin = 0.0f;
 		Level level = be.getLevel();
-		if (level != null) {
-			float time = level.getGameTime() + partialTick;
-			bob = (float) Math.sin(time * 0.1f) * 0.05f;
-			spin = time * 3.0f;
-		}
-		poseStack.translate(0.0d, bob, 0.0d);
-		poseStack.mulPose(Axis.YP.rotationDegrees(spin));
-		poseStack.scale(0.6f, 0.6f, 0.6f);
+		float time = level == null ? 0f : level.getGameTime() + partialTick;
+		float bob = Mth.sin(time * ITEM_BOB_SPEED) * ITEM_BOB_AMPLITUDE;
+		float spin = time * ITEM_SPIN_SPEED;
 
+		double itemX = 0.5d + facing.getStepX() * BOOK_FRONT_OFFSET;
+		double itemZ = 0.5d + facing.getStepZ() * BOOK_FRONT_OFFSET;
+		double itemY = ITEM_BASE_Y + bob;
+
+		poseStack.pushPose();
+		poseStack.translate(itemX, itemY, itemZ);
+		poseStack.mulPose(Axis.YP.rotationDegrees(spin));
+		poseStack.scale(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE);
+
+		ItemRenderer itemRenderer = Minecraft.getInstance().getItemRenderer();
 		itemRenderer.renderStatic(toDisplay, ItemDisplayContext.GROUND, packedLight, packedOverlay, poseStack, buffer,
 			level, 0);
-		poseStack.popPose();
-	}
-
-	private void renderTank(PoseStack poseStack, MultiBufferSource buffer, int packedLight, int packedOverlay) {
-		poseStack.pushPose();
-		blockRenderer.renderSingleBlock(tankState, poseStack, buffer, packedLight, packedOverlay);
 		poseStack.popPose();
 	}
 
@@ -126,7 +190,7 @@ public class EvokerEnchantingChamberRenderer implements BlockEntityRenderer<Evok
 		ModelPart rightLeg = root.getChild("right_leg");
 		ModelPart leftLeg = root.getChild("left_leg");
 
-		head.xRot = 0.08726646f;
+		head.xRot = HEAD_X_ROT;
 		rightLeg.xRot = RIGHT_LEG_X_ROT;
 		rightLeg.yRot = RIGHT_LEG_Y_ROT;
 		rightLeg.zRot = RIGHT_LEG_Z_ROT;
@@ -153,42 +217,6 @@ public class EvokerEnchantingChamberRenderer implements BlockEntityRenderer<Evok
 		cachedEvoker.yHeadRotO = 0.0f;
 
 		return cachedEvoker;
-	}
-
-	private static BlockState configureTankState(BlockState state) {
-		state = setBooleanProperty(state, "bottom", true);
-		state = setBooleanProperty(state, "top", true);
-		return setNamedProperty(state, "shape", "window");
-	}
-
-	private static BlockState setBooleanProperty(BlockState state, String propertyName, boolean value) {
-		for (Property<?> property : state.getProperties()) {
-			if (property.getName().equals(propertyName))
-				return setPropertyValue(state, property, value);
-		}
-		return state;
-	}
-
-	private static BlockState setNamedProperty(BlockState state, String propertyName, String valueName) {
-		for (Property<?> property : state.getProperties()) {
-			if (!property.getName().equals(propertyName))
-				continue;
-			for (Comparable<?> possibleValue : property.getPossibleValues()) {
-				if (getValueName(property, possibleValue).equals(valueName))
-					return setPropertyValue(state, property, possibleValue);
-			}
-		}
-		return state;
-	}
-
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private static String getValueName(Property property, Comparable value) {
-		return property.getName(value);
-	}
-
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private static BlockState setPropertyValue(BlockState state, Property property, Comparable value) {
-		return state.setValue(property, value);
 	}
 
 	private static class RenderEvoker extends Evoker {
