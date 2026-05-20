@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import com.nobodiiiii.createbiotech.compat.jade.JadeExperienceProvider;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 import com.simibubi.create.api.connectivity.ConnectivityHandler;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
@@ -25,7 +26,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 
 public class ExperienceTankBlockEntity extends BlockEntity
-	implements ExperienceSource, ExperienceSink, IHaveGoggleInformation, IMultiBlockEntityContainer.Fluid {
+	implements ExperienceSource, ExperienceSink, IHaveGoggleInformation, IMultiBlockEntityContainer.Fluid,
+	JadeExperienceProvider {
 
 	public static final int MAX_WIDTH = 3;
 	public static final int MAX_HEIGHT = 32;
@@ -317,6 +319,16 @@ public class ExperienceTankBlockEntity extends BlockEntity
 			return ExperienceConstants.TANK_CAPACITY_PER_BLOCK;
 		return controllerBE.width * controllerBE.width * controllerBE.height
 			* ExperienceConstants.TANK_CAPACITY_PER_BLOCK;
+	}
+
+	@Override
+	public int getJadeCurrentXp() {
+		return getStoredExperience();
+	}
+
+	@Override
+	public int getJadeMaxXp() {
+		return getCapacity();
 	}
 
 	public int getTotalSize() {

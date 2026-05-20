@@ -2,10 +2,11 @@ package com.nobodiiiii.createbiotech.content.evokerenchantingchamber;
 
 import java.util.List;
 
-import com.nobodiiiii.createbiotech.content.squidprinter.EnchantmentBookCopyItem;
+import com.nobodiiiii.createbiotech.compat.jade.JadeExperienceProvider;
 import com.nobodiiiii.createbiotech.content.experience.ExperienceConstants;
 import com.nobodiiiii.createbiotech.content.experience.ExperienceHelper;
 import com.nobodiiiii.createbiotech.content.experience.ExperienceSink;
+import com.nobodiiiii.createbiotech.content.squidprinter.EnchantmentBookCopyItem;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 import com.nobodiiiii.createbiotech.registry.CBItems;
 import com.nobodiiiii.createbiotech.registry.CBParticleTypes;
@@ -38,7 +39,7 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
 
 public class EvokerEnchantingChamberBlockEntity extends BlockEntity
-	implements ExperienceSink, IHaveGoggleInformation {
+	implements ExperienceSink, IHaveGoggleInformation, JadeExperienceProvider {
 
 	public static final int CAST_DURATION_TICKS_PER_LEVEL = 40;
 	public static final int XP_PER_TICK = ExperienceConstants.CHAMBER_XP_PER_LEVEL / CAST_DURATION_TICKS_PER_LEVEL;
@@ -225,6 +226,16 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity
 		if (controller != null && controller != this)
 			return controller.getXpConsumed();
 		return Math.max(0, xpTotal - xpRemaining);
+	}
+
+	@Override
+	public int getJadeCurrentXp() {
+		return getStoredExperience();
+	}
+
+	@Override
+	public int getJadeMaxXp() {
+		return ExperienceConstants.CHAMBER_CACHE_CAPACITY;
 	}
 
 	public boolean isBlocked() {

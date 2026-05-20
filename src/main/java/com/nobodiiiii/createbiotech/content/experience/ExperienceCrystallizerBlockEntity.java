@@ -2,6 +2,7 @@ package com.nobodiiiii.createbiotech.content.experience;
 
 import java.util.List;
 
+import com.nobodiiiii.createbiotech.compat.jade.JadeExperienceProvider;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
@@ -21,7 +22,8 @@ import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
 
-public class ExperienceCrystallizerBlockEntity extends BlockEntity implements ExperienceSink, IHaveGoggleInformation {
+public class ExperienceCrystallizerBlockEntity extends BlockEntity
+	implements ExperienceSink, IHaveGoggleInformation, JadeExperienceProvider {
 	public static final int MAX_STACK = 64;
 
 	private ItemStack output = ItemStack.EMPTY;
@@ -115,6 +117,16 @@ public class ExperienceCrystallizerBlockEntity extends BlockEntity implements Ex
 
 	public int getBufferedXp() {
 		return bufferedXp;
+	}
+
+	@Override
+	public int getJadeCurrentXp() {
+		return getBufferedXp();
+	}
+
+	@Override
+	public int getJadeMaxXp() {
+		return ExperienceConstants.XP_PER_NUGGET;
 	}
 
 	private void addNugget() {
