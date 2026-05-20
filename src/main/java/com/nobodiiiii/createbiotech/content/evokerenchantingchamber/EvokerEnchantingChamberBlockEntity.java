@@ -15,7 +15,6 @@ import com.simibubi.create.foundation.utility.CreateLang;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -44,9 +43,6 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity
 	public static final int CAST_DURATION_TICKS_PER_LEVEL = 40;
 	public static final int XP_PER_TICK = ExperienceConstants.CHAMBER_XP_PER_LEVEL / CAST_DURATION_TICKS_PER_LEVEL;
 	private static final int CLIENT_SYNC_INTERVAL_TICKS = 10;
-	private static final double SPELL_RED = 0.4d;
-	private static final double SPELL_GREEN = 0.3d;
-	private static final double SPELL_BLUE = 0.35d;
 	private static final double BOOK_FRONT_OFFSET = 4d / 16d;
 	private static final double BOOK_BASE_Y = 20d / 16d;
 	private static final double BOOK_BOB_AMPLITUDE = 0.04d;
@@ -73,11 +69,8 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity
 
 	public static void tick(Level level, BlockPos pos, BlockState state, EvokerEnchantingChamberBlockEntity be) {
 		be.ensureUpperProxyBlockEntity();
-		if (level.isClientSide) {
-			if (be.isCastingSpell())
-				spawnClientCastingParticles((Level) level, pos, state, be.xpRemaining);
+		if (level.isClientSide)
 			return;
-		}
 
 		if (be.heldItem.isEmpty() || be.xpRemaining <= 0)
 			return;
@@ -95,7 +88,6 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity
 		be.waitingForExperience = false;
 		be.storedExperience -= drain;
 		be.xpRemaining -= drain;
-		spawnCastingParticles((ServerLevel) level, pos, state, level.getGameTime());
 		spawnBookEnchantParticles((ServerLevel) level, pos, state);
 
 		if (be.xpRemaining <= 0) {
@@ -490,21 +482,6 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity
 		return extracted;
 	}
 
-	private static void spawnCastingParticles(ServerLevel level, BlockPos pos, BlockState state, long gameTime) {
-		float bodyYaw = 180.0f - state.getValue(EvokerEnchantingChamberBlock.FACING).toYRot();
-		float spellAngle = bodyYaw * Mth.DEG_TO_RAD + Mth.cos(gameTime * 0.6662f) * 0.25f;
-		float xOffset = Mth.cos(spellAngle) * 0.6f;
-		float zOffset = Mth.sin(spellAngle) * 0.6f;
-		double centerX = pos.getX() + 0.5d;
-		double centerY = pos.getY() + 1.8d;
-		double centerZ = pos.getZ() + 0.5d;
-
-		level.sendParticles(ParticleTypes.ENTITY_EFFECT, centerX + xOffset, centerY, centerZ + zOffset, 0,
-			SPELL_RED, SPELL_GREEN, SPELL_BLUE, 1.0d);
-		level.sendParticles(ParticleTypes.ENTITY_EFFECT, centerX - xOffset, centerY, centerZ - zOffset, 0,
-			SPELL_RED, SPELL_GREEN, SPELL_BLUE, 1.0d);
-	}
-
 	private static void spawnBookEnchantParticles(ServerLevel level, BlockPos pos, BlockState state) {
 		Direction facing = state.getValue(EvokerEnchantingChamberBlock.FACING);
 		double anchorX = pos.getX() + 0.5d + facing.getStepX() * BOOK_FRONT_OFFSET;
@@ -522,10 +499,6 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity
 			level.sendParticles(CBParticleTypes.STRAIGHT_ENCHANT.get(), startX, startY, startZ, 0,
 				targetX - startX, targetY - startY, targetZ - startZ, 1.0d);
 		}
-	}
-
-	private static void spawnClientCastingParticles(Level level, BlockPos pos, BlockState state, int xpRemaining) {
-		// nothing — client uses BE renderer for visual effects; particles are server-driven
 	}
 
 	public class ChamberItemHandler implements IItemHandler {

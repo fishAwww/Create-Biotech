@@ -66,6 +66,8 @@ public class EvokerEnchantingChamberRenderer implements BlockEntityRenderer<Evok
 	private static final float LEFT_LEG_X_ROT = -1.4137167f;
 	private static final float LEFT_LEG_Y_ROT = -0.31415927f;
 	private static final float LEFT_LEG_Z_ROT = -0.07853982f;
+	private static final float ARM_CAST_X_ROT = -0.95f;
+	private static final float ARM_CAST_Y_ROT = 0.18f;
 	private static final float ARM_RAISED_Z_ROT = 2.3561945f;
 
 	private final BlockRenderDispatcher blockRenderer;
@@ -194,7 +196,6 @@ public class EvokerEnchantingChamberRenderer implements BlockEntityRenderer<Evok
 		evokerModel.setupAnim(evoker, 0.0f, 0.0f, ageInTicks, 0.0f, 0.0f);
 
 		ModelPart head = root.getChild("head");
-		ModelPart body = root.getChild("body");
 		ModelPart rightLeg = root.getChild("right_leg");
 		ModelPart leftLeg = root.getChild("left_leg");
 
@@ -206,27 +207,20 @@ public class EvokerEnchantingChamberRenderer implements BlockEntityRenderer<Evok
 		leftLeg.yRot = LEFT_LEG_Y_ROT;
 		leftLeg.zRot = LEFT_LEG_Z_ROT;
 
-		applyArmAnimation(root, body, ageInTicks, casting);
+		applyArmPose(root, casting);
 	}
 
-	private static void applyArmAnimation(ModelPart root, ModelPart body, float ageInTicks, boolean casting) {
+	private static void applyArmPose(ModelPart root, boolean casting) {
 		ModelPart rightArm = root.getChild("right_arm");
 		ModelPart leftArm = root.getChild("left_arm");
 
 		if (casting) {
-			float swing = Mth.sin(ageInTicks * 0.5f) * 0.42f;
-			float sway = Mth.cos(ageInTicks * 0.35f) * 0.22f;
-			float twist = Mth.sin(ageInTicks * 0.7f) * 0.2f;
-
-			rightArm.xRot = -0.95f + swing;
-			leftArm.xRot = -0.95f - swing;
-			rightArm.yRot = 0.18f + sway;
-			leftArm.yRot = -0.18f - sway;
-			rightArm.zRot = ARM_RAISED_Z_ROT + twist;
-			leftArm.zRot = -ARM_RAISED_Z_ROT - twist;
-			body.zRot = Mth.sin(ageInTicks * 0.12f) * 0.05f;
-		} else {
-			body.zRot = 0.0f;
+			rightArm.xRot = ARM_CAST_X_ROT;
+			leftArm.xRot = ARM_CAST_X_ROT;
+			rightArm.yRot = ARM_CAST_Y_ROT;
+			leftArm.yRot = -ARM_CAST_Y_ROT;
+			rightArm.zRot = ARM_RAISED_Z_ROT;
+			leftArm.zRot = -ARM_RAISED_Z_ROT;
 		}
 	}
 
