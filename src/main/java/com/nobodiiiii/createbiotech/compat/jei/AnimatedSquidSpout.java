@@ -136,9 +136,8 @@ public class AnimatedSquidSpout extends AnimatedKineticsWithEntities {
 		Camera camera = setupJeiParticleCamera();
 		PoseStack poseStack = graphics.pose();
 		poseStack.pushPose();
-		poseStack.translate(SCENE_SCALE / 2f, SCENE_SCALE * 1.5f, SCENE_SCALE / 2f);
+		poseStack.scale(SCENE_SCALE, SCENE_SCALE, SCENE_SCALE);
 		UIRenderHelper.flipForGuiRender(poseStack);
-		poseStack.scale(16, 16, 16);
 
 		ParticleRenderType renderType = ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
 		LightTexture lightTexture = Minecraft.getInstance().gameRenderer.lightTexture();
