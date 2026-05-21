@@ -23,15 +23,12 @@ import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
-import mezz.jei.api.registration.IVanillaCategoryExtensionRegistration;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.NonNullList;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.ShapedRecipe;
-import net.minecraft.world.item.crafting.ShapelessRecipe;
 
 @JeiPlugin
 public class CreateBiotechJeiPlugin implements IModPlugin {
@@ -55,16 +52,6 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 		registration.addRecipeCategories(new EvokerEnchantingChamberJeiCategory());
 		registration.addRecipeCategories(new ExperienceCrystallizerJeiCategory());
 		registration.addRecipeCategories(new ExperiencePumpJeiCategory());
-	}
-
-	@Override
-	public void registerVanillaCategoryExtensions(IVanillaCategoryExtensionRegistration registration) {
-		var craftingCategory = registration.getCraftingCategory();
-		craftingCategory.addCategoryExtension(ShapedRecipe.class, CapturedEntityBoxJeiSupport::containsCapturedEntityBox,
-			CapturedEntityBoxCraftingCategoryExtension::new);
-		craftingCategory.addCategoryExtension(ShapelessRecipe.class,
-			CapturedEntityBoxJeiSupport::containsCapturedEntityBox,
-			CapturedEntityBoxCraftingCategoryExtension::new);
 	}
 
 	@Override
