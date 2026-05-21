@@ -26,6 +26,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -242,6 +243,11 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 		return running;
 	}
 
+	@FunctionalInterface
+	public interface SquidInkParticleEmitter {
+		void emit(double x, double y, double z, double dx, double dy, double dz);
+	}
+
 	public int getComparatorOutput() {
 		FluidStack stored = getFluid();
 		return stored.isEmpty() ? 0 : Math.max(1, (int) Math.round(stored.getAmount() * 14.0 / TANK_CAPACITY) + 1);
@@ -250,25 +256,35 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 	private void spawnInkParticles() {
 		if (level == null)
 			return;
-		double centerX = worldPosition.getX() + 0.5d;
-		double centerY = worldPosition.getY() - 0.5d;
-		double centerZ = worldPosition.getZ() + 0.5d;
-		for (int i = 0; i < 4; i++) {
-			double dx = (level.random.nextDouble() - 0.5d) * 0.4d;
-			double dz = (level.random.nextDouble() - 0.5d) * 0.4d;
-			level.addParticle(ParticleTypes.SQUID_INK, centerX + dx, centerY, centerZ + dz, 0d, -0.05d, 0d);
-		}
+		forEachBurstInkParticle(level, worldPosition,
+			(x, y, z, dx, dy, dz) -> level.addParticle(ParticleTypes.SQUID_INK, x, y, z, dx, dy, dz));
 	}
 
 	private void spawnAmbientInk() {
 		if (level == null)
 			return;
-		double centerX = worldPosition.getX() + 0.5d;
-		double centerY = worldPosition.getY() + 0.05d;
-		double centerZ = worldPosition.getZ() + 0.5d;
-		double dx = (level.random.nextDouble() - 0.5d) * 0.3d;
-		double dz = (level.random.nextDouble() - 0.5d) * 0.3d;
-		level.addParticle(ParticleTypes.SQUID_INK, centerX + dx, centerY, centerZ + dz, 0d, -0.04d, 0d);
+		forEachAmbientInkParticle(level, worldPosition,
+			(x, y, z, dx, dy, dz) -> level.addParticle(ParticleTypes.SQUID_INK, x, y, z, dx, dy, dz));
+	}
+
+	public static void forEachBurstInkParticle(Level level, BlockPos pos, SquidInkParticleEmitter emitter) {
+		double centerX = pos.getX() + 0.5d;
+		double centerY = pos.getY() - 0.5d;
+		double centerZ = pos.getZ() + 0.5d;
+		for (int i = 0; i < 4; i++) {
+			double offsetX = (level.random.nextDouble() - 0.5d) * 0.4d;
+			double offsetZ = (level.random.nextDouble() - 0.5d) * 0.4d;
+			emitter.emit(centerX + offsetX, centerY, centerZ + offsetZ, 0d, -0.05d, 0d);
+		}
+	}
+
+	public static void forEachAmbientInkParticle(Level level, BlockPos pos, SquidInkParticleEmitter emitter) {
+		double centerX = pos.getX() + 0.5d;
+		double centerY = pos.getY() + 0.05d;
+		double centerZ = pos.getZ() + 0.5d;
+		double offsetX = (level.random.nextDouble() - 0.5d) * 0.3d;
+		double offsetZ = (level.random.nextDouble() - 0.5d) * 0.3d;
+		emitter.emit(centerX + offsetX, centerY, centerZ + offsetZ, 0d, -0.04d, 0d);
 	}
 
 	@Override
