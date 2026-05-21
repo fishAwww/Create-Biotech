@@ -9,6 +9,7 @@ import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTank
 import com.simibubi.create.foundation.blockEntity.renderer.SafeBlockEntityRenderer;
 
 import dev.engine_room.flywheel.lib.model.baked.PartialModel;
+import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.platform.ForgeCatnipServices;
 import net.createmod.catnip.render.CachedBuffers;
 import net.minecraft.client.model.SquidModel;
@@ -117,7 +118,7 @@ public class SquidPrinterRenderer extends SafeBlockEntityRenderer<SquidPrinterBl
 			.render(ms, buffer, (poseStack, buf, lightArg) -> {
 				if (be.isRunning() && be.getLevel() != null) {
 					SquidPrinterSquidVisual.prepareRunningModel(squidModel,
-						SquidPrinterSquidVisual.runningCycleFromRenderTime(be.getLevel().getGameTime() + partialTicks));
+						SquidPrinterSquidVisual.runningCycleFromRenderTime(AnimationTickHolder.getRenderTime(be.getLevel())));
 				} else {
 					SquidPrinterSquidVisual.prepareIdleModel(squidModel);
 				}

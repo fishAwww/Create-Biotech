@@ -2,6 +2,7 @@ package com.nobodiiiii.createbiotech.content.experience;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 
+import net.createmod.catnip.animation.AnimationTickHolder;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -36,7 +37,7 @@ public class ExperienceTankRenderer implements BlockEntityRenderer<ExperienceTan
 		int height = be.getHeight();
 		int width = be.getWidth();
 		int orbCount = Math.max(1, storedExperience / XP_PER_ORB);
-		float ageTicks = level.getGameTime() + partialTick;
+		float ageTicks = AnimationTickHolder.getRenderTime(level);
 
 		float xMin = EDGE_PADDING;
 		float xMax = width - EDGE_PADDING;

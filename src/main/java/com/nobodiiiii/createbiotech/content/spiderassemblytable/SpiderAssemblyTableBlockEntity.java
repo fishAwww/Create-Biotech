@@ -1,5 +1,8 @@
 package com.nobodiiiii.createbiotech.content.spiderassemblytable;
 
+import static com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour.ProcessingResult.HOLD;
+import static com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour.ProcessingResult.PASS;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -15,11 +18,15 @@ import com.simibubi.create.api.stress.BlockStressValues;
 import com.simibubi.create.content.fluids.spout.SpoutBlockEntity;
 import com.simibubi.create.content.fluids.transfer.FillingRecipe;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour;
+import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour.ProcessingResult;
+import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour;
+import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour.TransportedResult;
+import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
 import com.simibubi.create.content.kinetics.deployer.DeployerApplicationRecipe;
 import com.simibubi.create.content.kinetics.press.PressingBehaviour;
 import com.simibubi.create.content.kinetics.press.PressingRecipe;
 import com.simibubi.create.content.kinetics.saw.CuttingRecipe;
-import com.simibubi.create.content.logistics.depot.DepotBlockEntity;
 import com.simibubi.create.content.processing.sequenced.SequencedAssemblyRecipe;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.fluid.FluidIngredient;
@@ -86,6 +93,9 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 	private boolean impactFiredThisCycle;
 	private boolean impactPending;
 	private ItemStack impactDisplayItem = ItemStack.EMPTY;
+	private ItemStack cachedInput = ItemStack.EMPTY;
+
+	protected BeltProcessingBehaviour beltProcessing;
 
 	public SpiderAssemblyTableBlockEntity(BlockPos pos, BlockState state) {
 		super(CBBlockEntityTypes.SPIDER_ASSEMBLY_TABLE.get(), pos, state);
@@ -117,7 +127,12 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 	}
 
 	@Override
-	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {}
+	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+		beltProcessing = new BeltProcessingBehaviour(this)
+			.whenItemEnters(this::onItemReceived)
+			.whileItemHeld(this::whileItemHeld);
+		behaviours.add(beltProcessing);
+	}
 
 	@Override
 	protected void write(CompoundTag tag, boolean clientPacket) {
@@ -143,6 +158,8 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 		tag.putInt("ActiveMachine", activeMachine == null ? -1 : activeMachine.ordinal());
 		tag.putInt("ProcessingTicksRemaining", processingTicksRemaining);
 		tag.putInt("ProcessingTicksTotal", processingTicksTotal);
+		if (!cachedInput.isEmpty())
+			tag.put("CachedInput", cachedInput.serializeNBT());
 		if (clientPacket && impactPending) {
 			tag.putBoolean("Impact", true);
 			if (!impactDisplayItem.isEmpty())
@@ -178,6 +195,7 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 			: null;
 		processingTicksRemaining = tag.getInt("ProcessingTicksRemaining");
 		processingTicksTotal = tag.getInt("ProcessingTicksTotal");
+		cachedInput = tag.contains("CachedInput") ? ItemStack.of(tag.getCompound("CachedInput")) : ItemStack.EMPTY;
 		super.read(tag, clientPacket);
 
 		if (clientPacket && tag.getBoolean("Impact")) {
@@ -446,56 +464,118 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 	}
 
 	private void tickAssembly() {
+		if (activeSlot < 0)
+			return;
 		if (getSpeed() == 0)
 			return;
 
-		Optional<DepotBlockEntity> depot = getDepot();
-		if (depot.isEmpty())
-			return;
+		int previousRemaining = processingTicksRemaining;
+		processingTicksRemaining--;
 
-		if (activeSlot >= 0) {
-			int previousRemaining = processingTicksRemaining;
-			processingTicksRemaining--;
-
-			int midpoint = processingTicksTotal / 2;
-			if (!impactFiredThisCycle && previousRemaining > midpoint && processingTicksRemaining <= midpoint) {
-				triggerImpact(depot.get());
-				impactFiredThisCycle = true;
-			}
-
-			if (processingTicksRemaining > 0)
-				return;
-
-			completeActiveProcess(depot.get());
-			activeSlot = -1;
-			activeMachine = null;
-			processingTicksRemaining = 0;
-			processingTicksTotal = 0;
-			impactFiredThisCycle = false;
-			setChanged();
-			sendData();
-			return;
+		int midpoint = processingTicksTotal / 2;
+		if (!impactFiredThisCycle && previousRemaining > midpoint && processingTicksRemaining <= midpoint) {
+			triggerImpact();
+			impactFiredThisCycle = true;
 		}
 
-		tryStartProcess(depot.get());
+		if (processingTicksRemaining < 0)
+			processingTicksRemaining = 0;
 	}
 
-	private void triggerImpact(DepotBlockEntity depot) {
+	protected ProcessingResult onItemReceived(TransportedItemStack transported,
+		TransportedItemStackHandlerBehaviour handler) {
+		if (handler.blockEntity.isVirtual())
+			return PASS;
+		if (getSpeed() == 0)
+			return PASS;
+		if (activeSlot >= 0)
+			return HOLD;
+		if (transported.stack.isEmpty())
+			return PASS;
+		if (!startProcessFor(transported.stack))
+			return PASS;
+		return HOLD;
+	}
+
+	protected ProcessingResult whileItemHeld(TransportedItemStack transported,
+		TransportedItemStackHandlerBehaviour handler) {
+		if (getSpeed() == 0)
+			return PASS;
+
+		if (activeSlot < 0) {
+			if (transported.stack.isEmpty())
+				return PASS;
+			if (!startProcessFor(transported.stack))
+				return PASS;
+			return HOLD;
+		}
+
+		if (processingTicksRemaining > 0)
+			return HOLD;
+
+		List<ItemStack> outputs = applyActiveProcess(cachedInput.isEmpty() ? transported.stack : cachedInput);
+
+		List<TransportedItemStack> outList = new ArrayList<>();
+		for (ItemStack out : outputs) {
+			if (out.isEmpty())
+				continue;
+			TransportedItemStack copy = transported.copy();
+			copy.stack = out;
+			copy.locked = true;
+			outList.add(copy);
+		}
+
+		ItemStack remaining = transported.stack.copy();
+		remaining.shrink(1);
+		TransportedItemStack held = null;
+		if (!remaining.isEmpty()) {
+			held = transported.copy();
+			held.stack = remaining;
+		}
+
+		transported.clearFanProcessingData();
+
+		if (outList.isEmpty() && held == null) {
+			handler.handleProcessingOnItem(transported, TransportedResult.removeItem());
+		} else if (held == null) {
+			handler.handleProcessingOnItem(transported, TransportedResult.convertTo(outList));
+		} else if (outList.isEmpty()) {
+			handler.handleProcessingOnItem(transported, TransportedResult.convertTo(List.of(held)));
+		} else {
+			handler.handleProcessingOnItem(transported, TransportedResult.convertToAndLeaveHeld(outList, held));
+		}
+
+		resetActiveProcess();
+		setChanged();
+		sendData();
+		return HOLD;
+	}
+
+	private void resetActiveProcess() {
+		activeSlot = -1;
+		activeMachine = null;
+		processingTicksRemaining = 0;
+		processingTicksTotal = 0;
+		impactFiredThisCycle = false;
+		cachedInput = ItemStack.EMPTY;
+	}
+
+	private void triggerImpact() {
 		if (level == null || activeMachine == null)
 			return;
 		playMachineSound();
-		impactDisplayItem = resolveImpactItem(depot).copy();
+		impactDisplayItem = resolveImpactItem().copy();
 		impactPending = true;
 		sendData();
 	}
 
-	private ItemStack resolveImpactItem(DepotBlockEntity depot) {
+	private ItemStack resolveImpactItem() {
 		if (activeMachine == MachineKind.DEPLOYER && activeSlot >= 0) {
 			ItemStack held = inventory.getStackInSlot(HYBRID_SLOT_START + activeSlot);
 			if (!held.isEmpty())
 				return held;
 		}
-		return depot.getHeldItem();
+		return cachedInput;
 	}
 
 	private void playMachineSound() {
@@ -548,19 +628,11 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 		}
 	}
 
-	private Optional<DepotBlockEntity> getDepot() {
-		if (level == null)
-			return Optional.empty();
-		BlockPos depotPos = worldPosition.below(2);
-		if (!(level.getBlockEntity(depotPos) instanceof DepotBlockEntity depot))
-			return Optional.empty();
-		return Optional.of(depot);
-	}
-
-	private void tryStartProcess(DepotBlockEntity depot) {
-		ItemStack input = depot.getHeldItem();
-		if (input.isEmpty() || input.getCount() != 1)
-			return;
+	private boolean startProcessFor(ItemStack input) {
+		if (input.isEmpty())
+			return false;
+		ItemStack singleInput = input.copy();
+		singleInput.setCount(1);
 
 		for (int attempt = 0; attempt < LEG_COUNT; attempt++) {
 			int slot = (nextSlot + attempt) % LEG_COUNT;
@@ -568,7 +640,7 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 			if (kind == null)
 				continue;
 
-			Optional<ProcessingPlan> plan = createPlan(slot, kind, input);
+			Optional<ProcessingPlan> plan = createPlan(slot, kind, singleInput);
 			if (plan.isEmpty())
 				continue;
 
@@ -578,10 +650,12 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 			processingTicksRemaining = processingTicksTotal;
 			impactFiredThisCycle = false;
 			nextSlot = (slot + 1) % LEG_COUNT;
+			cachedInput = singleInput;
 			setChanged();
 			sendData();
-			return;
+			return true;
 		}
+		return false;
 	}
 
 	private Optional<ProcessingPlan> createPlan(int slot, MachineKind kind, ItemStack input) {
@@ -595,20 +669,19 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 		};
 	}
 
-	private void completeActiveProcess(DepotBlockEntity depot) {
-		if (activeMachine == null || activeSlot < 0)
-			return;
+	private List<ItemStack> applyActiveProcess(ItemStack input) {
+		if (activeMachine == null || activeSlot < 0 || input.isEmpty())
+			return List.of();
 
-		ItemStack input = depot.getHeldItem();
-		if (input.isEmpty() || input.getCount() != 1)
-			return;
+		ItemStack singleInput = input.copy();
+		singleInput.setCount(1);
 
-		switch (activeMachine) {
-		case DEPLOYER -> processDeploying(depot, activeSlot, input);
-		case PRESS -> processPressing(depot, input);
-		case SAW -> processCutting(depot, input);
-		case SPOUT -> processFilling(depot, activeSlot, input);
-		}
+		return switch (activeMachine) {
+		case DEPLOYER -> processDeploying(activeSlot, singleInput);
+		case PRESS -> processPressing(singleInput);
+		case SAW -> processCutting(singleInput);
+		case SPOUT -> processFilling(activeSlot, singleInput);
+		};
 	}
 
 	private Optional<PressingRecipe> findPressingRecipe(ItemStack input) {
@@ -645,47 +718,38 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 			recipe -> recipe.matches(wrapper, level) && recipe.getRequiredFluid().test(fluid));
 	}
 
-	private void processPressing(DepotBlockEntity depot, ItemStack input) {
-		findPressingRecipe(input).ifPresent(recipe -> applyItemOutputs(depot,
-			RecipeApplier.applyRecipeOn(level, input.copy(), recipe, true)));
+	private List<ItemStack> processPressing(ItemStack input) {
+		return findPressingRecipe(input)
+			.map(recipe -> RecipeApplier.applyRecipeOn(level, input.copy(), recipe, true))
+			.orElse(List.of());
 	}
 
-	private void processCutting(DepotBlockEntity depot, ItemStack input) {
-		findCuttingRecipe(input).ifPresent(recipe -> applyItemOutputs(depot,
-			RecipeApplier.applyRecipeOn(level, input.copy(), recipe, true)));
+	private List<ItemStack> processCutting(ItemStack input) {
+		return findCuttingRecipe(input)
+			.map(recipe -> RecipeApplier.applyRecipeOn(level, input.copy(), recipe, true))
+			.orElse(List.of());
 	}
 
-	private void processDeploying(DepotBlockEntity depot, int slot, ItemStack input) {
-		findDeployingRecipe(slot, input).ifPresent(recipe -> {
-			applyItemOutputs(depot, RecipeApplier.applyRecipeOn(level, input.copy(), recipe, true));
-			consumeDeployingItem(slot, recipe);
-		});
+	private List<ItemStack> processDeploying(int slot, ItemStack input) {
+		Optional<DeployerApplicationRecipe> recipe = findDeployingRecipe(slot, input);
+		if (recipe.isEmpty())
+			return List.of();
+		List<ItemStack> outputs = RecipeApplier.applyRecipeOn(level, input.copy(), recipe.get(), true);
+		consumeDeployingItem(slot, recipe.get());
+		return outputs;
 	}
 
-	private void processFilling(DepotBlockEntity depot, int slot, ItemStack input) {
-		findFillingRecipe(slot, input).ifPresent(recipe -> {
-			FluidIngredient requiredFluid = recipe.getRequiredFluid();
-			FluidStack available = fluidTanks[slot].getFluid();
-			if (!requiredFluid.test(available))
-				return;
-			fluidTanks[slot].drain(requiredFluid.getRequiredAmount(), FluidAction.EXECUTE);
-			applyItemOutputs(depot, recipe.rollResults());
-		});
-	}
-
-	private void applyItemOutputs(DepotBlockEntity depot, List<ItemStack> outputs) {
-		List<ItemStack> nonEmptyOutputs = new ArrayList<>();
-		for (ItemStack output : outputs) {
-			if (!output.isEmpty())
-				nonEmptyOutputs.add(output.copy());
-		}
-
-		ItemStack newHeld = nonEmptyOutputs.isEmpty() ? ItemStack.EMPTY : nonEmptyOutputs.remove(0);
-		depot.setHeldItem(newHeld);
-		depot.notifyUpdate();
-
-		for (ItemStack extra : nonEmptyOutputs)
-			dropStackNearDepot(depot.getBlockPos(), extra);
+	private List<ItemStack> processFilling(int slot, ItemStack input) {
+		Optional<FillingRecipe> recipeOpt = findFillingRecipe(slot, input);
+		if (recipeOpt.isEmpty())
+			return List.of();
+		FillingRecipe recipe = recipeOpt.get();
+		FluidIngredient requiredFluid = recipe.getRequiredFluid();
+		FluidStack available = fluidTanks[slot].getFluid();
+		if (!requiredFluid.test(available))
+			return List.of();
+		fluidTanks[slot].drain(requiredFluid.getRequiredAmount(), FluidAction.EXECUTE);
+		return recipe.rollResults();
 	}
 
 	private void consumeDeployingItem(int slot, DeployerApplicationRecipe recipe) {
@@ -748,15 +812,6 @@ public class SpiderAssemblyTableBlockEntity extends KineticBlockEntity implement
 
 	private boolean canHoldItemInHybrid(int hybridIndex) {
 		return fluidTanks[hybridIndex].getFluid().isEmpty();
-	}
-
-	private void dropStackNearDepot(BlockPos depotPos, ItemStack stack) {
-		if (level == null || stack.isEmpty())
-			return;
-		ItemEntity entity = new ItemEntity(level, depotPos.getX() + 0.5d, depotPos.getY() + 1.0d,
-			depotPos.getZ() + 0.5d, stack.copy());
-		entity.setDefaultPickUpDelay();
-		level.addFreshEntity(entity);
 	}
 
 	private void dropStackNearTable(ItemStack stack) {

@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.nobodiiiii.createbiotech.foundation.render.BlockEntityModelElement;
 
+import net.createmod.catnip.animation.AnimationTickHolder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.BookModel;
 import net.minecraft.client.model.IllagerModel;
@@ -111,8 +112,7 @@ public class EvokerEnchantingChamberRenderer implements BlockEntityRenderer<Evok
 
 	private void renderBook(EvokerEnchantingChamberBlockEntity be, float partialTick, PoseStack poseStack,
 		MultiBufferSource buffer, int packedLight, int packedOverlay, Direction facing) {
-		Level level = be.getLevel();
-		float time = level == null ? 0f : level.getGameTime() + partialTick;
+		float time = AnimationTickHolder.getRenderTime(be.getLevel());
 		float bob = Mth.sin(time * BOOK_BOB_SPEED) * BOOK_BOB_AMPLITUDE;
 
 		double bookX = 0.5d + facing.getStepX() * BOOK_FRONT_OFFSET;
@@ -147,7 +147,7 @@ public class EvokerEnchantingChamberRenderer implements BlockEntityRenderer<Evok
 			return;
 
 		Level level = be.getLevel();
-		float time = level == null ? 0f : level.getGameTime() + partialTick;
+		float time = AnimationTickHolder.getRenderTime(level);
 		float bob = Mth.sin(time * ITEM_BOB_SPEED) * ITEM_BOB_AMPLITUDE;
 		float spin = time * ITEM_SPIN_SPEED;
 
@@ -170,17 +170,18 @@ public class EvokerEnchantingChamberRenderer implements BlockEntityRenderer<Evok
 		EvokerEnchantingChamberBlockEntity blockEntity,
 		float partialTick) {
 		boolean casting = blockEntity.isCastingSpell();
-		float ageInTicks = blockEntity.getAnimationTime(partialTick);
+		float ageInTicks = AnimationTickHolder.getRenderTime(blockEntity.getLevel());
 		EvokerEnchantingVisual.prepareModel(evokerModel, evoker, ageInTicks, casting);
 	}
 
 	private EvokerEnchantingVisual.RenderEvoker getOrCreateEvoker(Level level) {
-		if (!(level instanceof ClientLevel clientLevel))
+		ClientLevel hostLevel = level instanceof ClientLevel cl ? cl : Minecraft.getInstance().level;
+		if (hostLevel == null)
 			return null;
 
-		if (cachedEvoker == null || cachedLevel != clientLevel) {
-			cachedLevel = clientLevel;
-			cachedEvoker = new EvokerEnchantingVisual.RenderEvoker(clientLevel);
+		if (cachedEvoker == null || cachedLevel != hostLevel) {
+			cachedLevel = hostLevel;
+			cachedEvoker = new EvokerEnchantingVisual.RenderEvoker(hostLevel);
 			cachedEvoker.setNoAi(true);
 			cachedEvoker.setSilent(true);
 		}

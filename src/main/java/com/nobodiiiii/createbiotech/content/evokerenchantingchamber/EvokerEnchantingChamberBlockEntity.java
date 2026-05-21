@@ -19,7 +19,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
@@ -70,8 +69,11 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity
 
 	public static void tick(Level level, BlockPos pos, BlockState state, EvokerEnchantingChamberBlockEntity be) {
 		be.ensureUpperProxyBlockEntity();
-		if (level.isClientSide)
+		if (level.isClientSide) {
+			if (be.isCastingSpell())
+				spawnBookEnchantParticlesClient(level, pos, state);
 			return;
+		}
 
 		if (be.heldItem.isEmpty() || be.xpRemaining <= 0)
 			return;
@@ -89,7 +91,6 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity
 		be.waitingForExperience = false;
 		be.storedExperience -= drain;
 		be.xpRemaining -= drain;
-		spawnBookEnchantParticles((ServerLevel) level, pos, state);
 
 		if (be.xpRemaining <= 0) {
 			be.completeCasting();
@@ -257,13 +258,6 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity
 		if (controller != null && controller != this)
 			return controller.getPendingOutput();
 		return pendingOutput;
-	}
-
-	public float getAnimationTime(float partialTick) {
-		EvokerEnchantingChamberBlockEntity controller = getController();
-		if (controller != null && controller != this)
-			return controller.getAnimationTime(partialTick);
-		return level == null ? partialTick : level.getGameTime() + partialTick;
 	}
 
 	@Override
@@ -493,7 +487,7 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity
 		return extracted;
 	}
 
-	private static void spawnBookEnchantParticles(ServerLevel level, BlockPos pos, BlockState state) {
+	private static void spawnBookEnchantParticlesClient(Level level, BlockPos pos, BlockState state) {
 		Direction facing = state.getValue(EvokerEnchantingChamberBlock.FACING);
 		double anchorX = pos.getX() + 0.5d + facing.getStepX() * BOOK_FRONT_OFFSET;
 		double anchorZ = pos.getZ() + 0.5d + facing.getStepZ() * BOOK_FRONT_OFFSET;
@@ -507,8 +501,8 @@ public class EvokerEnchantingChamberBlockEntity extends BlockEntity
 			double startZ = anchorZ + (level.random.nextDouble() - 0.5d) * BOOK_PARTICLE_SOURCE_SPREAD;
 			double targetX = anchorX + (level.random.nextDouble() - 0.5d) * BOOK_PARTICLE_TARGET_SPREAD;
 			double targetZ = anchorZ + (level.random.nextDouble() - 0.5d) * BOOK_PARTICLE_TARGET_SPREAD;
-			level.sendParticles(CBParticleTypes.STRAIGHT_ENCHANT.get(), startX, startY, startZ, 0,
-				targetX - startX, targetY - startY, targetZ - startZ, 1.0d);
+			level.addParticle(CBParticleTypes.STRAIGHT_ENCHANT.get(), startX, startY, startZ,
+				targetX - startX, targetY - startY, targetZ - startZ);
 		}
 	}
 
