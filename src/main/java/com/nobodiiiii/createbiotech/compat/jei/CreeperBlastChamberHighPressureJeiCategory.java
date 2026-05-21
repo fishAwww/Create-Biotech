@@ -46,9 +46,8 @@ public class CreeperBlastChamberHighPressureJeiCategory
 			.setBackground(getRenderedSlot(), -1, -1)
 			.addItemStack(new ItemStack(CBBlocks.CREEPER_BLAST_CHAMBER.get()));
 
-		builder.addSlot(RecipeIngredientRole.INPUT, 27, 51)
-			.setBackground(getRenderedSlot(), -1, -1)
-			.addIngredients(recipe.getIngredients().get(0));
+		CapturedEntityBoxJeiSupport.addIngredients(builder.addSlot(RecipeIngredientRole.INPUT, 27, 51)
+			.setBackground(getRenderedSlot(), -1, -1), recipe.getIngredients().get(0));
 
 		List<ProcessingOutput> results = recipe.getRollableResults();
 		boolean single = results.size() == 1;

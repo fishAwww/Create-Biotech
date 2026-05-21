@@ -7,13 +7,10 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.nobodiiiii.createbiotech.content.experience.ExperienceOrbModelRenderer;
-import com.nobodiiiii.createbiotech.content.evokerenchantingchamber.EvokerEnchantingVisual;
-import com.nobodiiiii.createbiotech.foundation.render.EntityModelElement;
 
 import net.createmod.catnip.animation.AnimationTickHolder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.BookModel;
-import net.minecraft.client.model.IllagerModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.gui.GuiGraphics;
@@ -36,15 +33,6 @@ public class AnimatedEvokerEnchanting extends AnimatedKineticsWithEntities {
 	private static final int SCENE_SCALE = 20;
 	private static final int PACKED_LIGHT = LightTexture.FULL_BRIGHT;
 	private static final float ENCHANTING_TABLE_TOP_Y = 14f / 16f;
-	private static final float UPPER_BLOCK_TOP_Y = 1.95f;
-	private static final float EVOKER_BODY_HEIGHT_UNITS = 22f;
-	private static final float EVOKER_SCALE =
-		(UPPER_BLOCK_TOP_Y - ENCHANTING_TABLE_TOP_Y) * 16f / EVOKER_BODY_HEIGHT_UNITS;
-	private static final float EVOKER_ROOT_Y = ENCHANTING_TABLE_TOP_Y + 12f / 16f * EVOKER_SCALE;
-	private static final float EVOKER_BACK_GAP = 1f / 16f;
-	private static final float EVOKER_BACK_HALF_DEPTH = 3f / 16f * EVOKER_SCALE;
-	private static final float EVOKER_BACK_OFFSET_FROM_CENTER =
-		0.5f - (EVOKER_BACK_HALF_DEPTH + EVOKER_BACK_GAP);
 	private static final float BOOK_FRONT_OFFSET = 4f / 16f;
 	private static final float BOOK_BASE_Y = ENCHANTING_TABLE_TOP_Y + 4f / 16f;
 	private static final float BOOK_BOB_AMPLITUDE = 0.04f;
@@ -66,13 +54,7 @@ public class AnimatedEvokerEnchanting extends AnimatedKineticsWithEntities {
 	private ItemStack inputCopy = ItemStack.EMPTY;
 	private ItemStack outputBook = ItemStack.EMPTY;
 	@Nullable
-	private IllagerModel<EvokerEnchantingVisual.RenderEvoker> evokerModel;
-	@Nullable
 	private BookModel bookModel;
-	@Nullable
-	private EvokerEnchantingVisual.RenderEvoker cachedEvoker;
-	@Nullable
-	private ClientLevel cachedLevel;
 
 	public AnimatedEvokerEnchanting withRecipe(EvokerEnchantingChamberJeiRecipe recipe) {
 		inputCopy = recipe.inputCopy()
@@ -97,9 +79,8 @@ public class AnimatedEvokerEnchanting extends AnimatedKineticsWithEntities {
 		blockElement(ENCHANTING_TABLE)
 			.scale(SCENE_SCALE)
 			.render(graphics);
-		renderEvoker(level, graphics);
 
-		EntityModelElement.DEFAULT_GUI_LIGHTING.applyLighting();
+		DEFAULT_LIGHTING.applyLighting();
 		try {
 			renderBook(graphics);
 			renderEnchantingItem(level, graphics);
@@ -109,34 +90,6 @@ public class AnimatedEvokerEnchanting extends AnimatedKineticsWithEntities {
 		}
 
 		poseStack.popPose();
-	}
-
-	private void renderEvoker(ClientLevel level, GuiGraphics graphics) {
-		EvokerEnchantingVisual.RenderEvoker evoker = getOrCreateEvoker(level);
-		IllagerModel<EvokerEnchantingVisual.RenderEvoker> evokerModel = getEvokerModel();
-		if (evoker == null || evokerModel == null)
-			return;
-
-		float renderTime = AnimationTickHolder.getRenderTime();
-		double rootX = 0.5d - FACING.getStepX() * EVOKER_BACK_OFFSET_FROM_CENTER;
-		double rootZ = 0.5d - FACING.getStepZ() * EVOKER_BACK_OFFSET_FROM_CENTER;
-
-		graphics.pose()
-			.pushPose();
-		graphics.pose()
-			.scale(SCENE_SCALE, SCENE_SCALE, SCENE_SCALE);
-		EntityModelElement.of(evoker)
-			.lighting(EntityModelElement.DEFAULT_GUI_LIGHTING)
-			.packedLight(PACKED_LIGHT)
-			.atLocal(rootX, EVOKER_ROOT_Y, rootZ)
-			.rotate(0.0d, 180.0d - FACING.toYRot(), 0.0d)
-			.scale(-EVOKER_SCALE, -EVOKER_SCALE, EVOKER_SCALE)
-			.render(graphics.pose(), graphics.bufferSource(), (entity, poseStack, buffer, packedLight) -> {
-				EvokerEnchantingVisual.prepareModel(evokerModel, entity, renderTime, true);
-				EvokerEnchantingVisual.renderModel(evokerModel, poseStack, buffer, packedLight);
-			});
-		graphics.pose()
-			.popPose();
 	}
 
 	private void renderBook(GuiGraphics graphics) {
@@ -249,35 +202,11 @@ public class AnimatedEvokerEnchanting extends AnimatedKineticsWithEntities {
 		return cycle >= OUTPUT_PHASE_START ? outputBook : inputCopy;
 	}
 
-	private @Nullable IllagerModel<EvokerEnchantingVisual.RenderEvoker> getEvokerModel() {
-		if (evokerModel == null && Minecraft.getInstance().getEntityModels() != null)
-			evokerModel = new IllagerModel<>(Minecraft.getInstance()
-				.getEntityModels()
-				.bakeLayer(ModelLayers.EVOKER));
-		return evokerModel;
-	}
-
 	private @Nullable BookModel getBookModel() {
 		if (bookModel == null && Minecraft.getInstance().getEntityModels() != null)
 			bookModel = new BookModel(Minecraft.getInstance()
 				.getEntityModels()
 				.bakeLayer(ModelLayers.BOOK));
 		return bookModel;
-	}
-
-	private @Nullable EvokerEnchantingVisual.RenderEvoker getOrCreateEvoker(ClientLevel level) {
-		if (cachedEvoker == null || cachedLevel != level) {
-			cachedLevel = level;
-			cachedEvoker = new EvokerEnchantingVisual.RenderEvoker(level);
-			cachedEvoker.setNoAi(true);
-			cachedEvoker.setSilent(true);
-		}
-
-		cachedEvoker.setYRot(0.0f);
-		cachedEvoker.setYBodyRot(0.0f);
-		cachedEvoker.yBodyRotO = 0.0f;
-		cachedEvoker.yHeadRot = 0.0f;
-		cachedEvoker.yHeadRotO = 0.0f;
-		return cachedEvoker;
 	}
 }

@@ -7,13 +7,12 @@ import com.simibubi.create.compat.jei.category.CreateRecipeCategory;
 import com.simibubi.create.foundation.gui.AllGuiTextures;
 
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
-import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.AbstractRecipeCategory;
-import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -44,10 +43,7 @@ public class EvokerEnchantingChamberJeiCategory extends AbstractRecipeCategory<E
 	public void setRecipe(IRecipeLayoutBuilder builder, EvokerEnchantingChamberJeiRecipe recipe, IFocusGroup focuses) {
 		builder.addSlot(RecipeIngredientRole.CATALYST, CATALYST_X, CATALYST_Y)
 			.setBackground(CreateRecipeCategory.getRenderedSlot(), -1, -1)
-			.addItemStack(new ItemStack(CBItems.EXPERIENCE.get()))
-			.addRichTooltipCallback((view, tooltip) -> tooltip.add(
-				Component.translatable("create_biotech.jei.evoker_enchanting_chamber.note.experience")
-					.withStyle(ChatFormatting.GRAY)));
+			.addItemStack(new ItemStack(CBItems.EXPERIENCE.get()));
 
 		builder.addSlot(RecipeIngredientRole.INPUT, INPUT_X, INPUT_Y)
 			.setBackground(CreateRecipeCategory.getRenderedSlot(), -1, -1)
@@ -65,13 +61,8 @@ public class EvokerEnchantingChamberJeiCategory extends AbstractRecipeCategory<E
 		AllGuiTextures.JEI_DOWN_ARROW.render(graphics, 126, 29);
 		enchanting.withRecipe(recipe)
 			.draw(graphics, WIDTH / 2 - 13, 22);
-	}
-
-	@Override
-	public void getTooltip(ITooltipBuilder tooltip, EvokerEnchantingChamberJeiRecipe recipe,
-		IRecipeSlotsView recipeSlotsView, double mouseX, double mouseY) {
-		for (Component note : recipe.notes())
-			tooltip.add(note.copy().withStyle(ChatFormatting.GRAY));
+		graphics.renderItemDecorations(Minecraft.getInstance().font, new ItemStack(CBItems.EXPERIENCE.get()), CATALYST_X,
+			CATALYST_Y, String.valueOf(recipe.xpCost()));
 	}
 
 	@Override
