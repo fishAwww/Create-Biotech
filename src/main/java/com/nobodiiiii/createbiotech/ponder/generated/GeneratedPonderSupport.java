@@ -1,6 +1,7 @@
 package com.nobodiiiii.createbiotech.ponder.generated;
 
 import com.mojang.logging.LogUtils;
+import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import net.createmod.catnip.math.Pointing;
 import net.createmod.ponder.api.PonderPalette;
 import net.createmod.ponder.api.element.ElementLink;
@@ -322,14 +323,15 @@ public final class GeneratedPonderSupport {
         }
         ensureSceneCanShowRange(scene, pos1, targetPos2, immediate);
         updateVisibleRange(context, pos1, targetPos2, immediate);
+        Selection selection = scene.getScene().getSceneBuildingUtil().select().fromTo(pos1, targetPos2);
         if (!pos1.equals(targetPos2)) {
-            Selection selection = scene.getScene().getSceneBuildingUtil().select().fromTo(pos1, targetPos2);
             scene.world().setBlocks(selection, state, particles);
             applySetBlockNbtPatch(scene, nbt, selection);
         } else {
             scene.world().setBlock(pos1, state, particles);
-            applySetBlockNbtPatch(scene, nbt, scene.getScene().getSceneBuildingUtil().select().position(pos1));
+            applySetBlockNbtPatch(scene, nbt, selection);
         }
+        markSmartBlockEntitiesVirtual(scene, selection);
     }
 
     public static void destroyBlock(SceneBuilder scene, Context context, BlockPos pos, Boolean destroyParticles) {
@@ -358,6 +360,7 @@ public final class GeneratedPonderSupport {
         Selection selection = scene.getScene().getSceneBuildingUtil().select().fromTo(pos1, targetPos2);
         scene.world().replaceBlocks(selection, applyBlockProperties(block.defaultBlockState(), blockProperties),
             !Boolean.FALSE.equals(spawnParticles));
+        markSmartBlockEntitiesVirtual(scene, selection);
         updateVisibleRange(context, pos1, targetPos2, true);
     }
 
@@ -609,8 +612,13 @@ public final class GeneratedPonderSupport {
             Math.max(pos1.getZ(), pos2.getZ()));
         Selection selection = scene.getScene().getSceneBuildingUtil().select().fromTo(posMin, posMax);
         scene.world().modifyBlockEntityNBT(selection,
+            com.simibubi.create.content.kinetics.gauge.SpeedGaugeBlockEntity.class,
+            nbt -> nbt.putFloat("Value",
+                com.simibubi.create.content.kinetics.gauge.SpeedGaugeBlockEntity.getDialTarget(kineticSpeed)));
+        scene.world().modifyBlockEntityNBT(selection,
             com.simibubi.create.content.kinetics.base.KineticBlockEntity.class,
             nbt -> nbt.putFloat("Speed", kineticSpeed));
+        markSmartBlockEntitiesVirtual(scene, selection);
         for (BlockPos pos : BlockPos.betweenClosed(posMin, posMax)) {
             BlockPos copy = pos.immutable();
             scene.world().modifyBlockEntity(copy,
@@ -758,6 +766,7 @@ public final class GeneratedPonderSupport {
         Selection selection = scene.getScene().getSceneBuildingUtil().select().fromTo(pos1, pos2);
         scene.world().setBlocks(selection, state, false);
         applySetBlockNbtPatch(scene, nbt, selection);
+        markSmartBlockEntitiesVirtual(scene, selection);
         String key = linkId == null ? "" : linkId.trim();
         if (key.isEmpty()) {
             key = autoLinkId(context);
@@ -780,6 +789,15 @@ public final class GeneratedPonderSupport {
             scene.world().modifyBlockEntityNBT(selection, BlockEntity.class, data -> data.merge(patch.copy()), true);
         } catch (Exception ignored) {
         }
+    }
+
+    private static void markSmartBlockEntitiesVirtual(SceneBuilder scene, Selection selection) {
+        scene.addInstruction(ponderScene -> selection.forEach(pos -> {
+            BlockEntity blockEntity = ponderScene.getWorld().getBlockEntity(pos);
+            if (blockEntity instanceof SmartBlockEntity smartBlockEntity) {
+                smartBlockEntity.markVirtual();
+            }
+        }));
     }
 
     private static void ensureSceneCanShowRange(SceneBuilder scene, BlockPos pos1, BlockPos pos2,
@@ -1345,6 +1363,14 @@ public final class GeneratedPonderSupport {
                 scene.world().modifyBlockEntityNBT(sel, BlockEntity.class, nbt -> nbt.merge(patch.copy()), true);
             }
         }
+        scene.addInstruction(ponderScene -> {
+            for (PlacedBlock b : placed) {
+                BlockEntity blockEntity = ponderScene.getWorld().getBlockEntity(b.pos);
+                if (blockEntity instanceof SmartBlockEntity smartBlockEntity) {
+                    smartBlockEntity.markVirtual();
+                }
+            }
+        });
         applyExtraPlacedVisibility(context, placed, placeVisible);
 
         if (!animatedReveal) {
