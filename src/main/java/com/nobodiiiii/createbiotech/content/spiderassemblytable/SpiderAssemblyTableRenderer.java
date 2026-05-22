@@ -60,7 +60,7 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 	private static final float MACHINE_SCALE = 0.4f;
 	private static final float LEG_LENGTH_MODEL = 15.0f;
 	private static final float LEG_PIVOT_X_MODEL = 4.0f;
-	private static final int[] LEG_PIVOT_Z_MODEL = { -1, 0, 1, 2, -1, 0, 1, 2 };
+	private static final int[] LEG_PIVOT_Z_MODEL = { -1, -1, 0, 0, 1, 1, 2, 2 };
 	private static final float DEPOT_X_MODEL = 0f;
 	private static final float DEPOT_Y_MODEL = 39f;
 	private static final float DEPOT_Z_MODEL = 0f;
@@ -132,7 +132,7 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 				continue;
 
 			BlockState machineState = machineStateFor(kind);
-			boolean leftSide = slot < 4;
+			boolean leftSide = (slot % 2) == 0;
 			boolean isActive = (slot == activeSlot);
 			float sign = leftSide ? 1f : -1f;
 
@@ -292,7 +292,7 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 	}
 
 	private static boolean isOuterLeg(int slot) {
-		return slot == 0 || slot == 3 || slot == 4 || slot == 7;
+		return slot == 0 || slot == 1 || slot == 6 || slot == 7;
 	}
 
 	private static void renderJointGear(PoseStack ms, MultiBufferSource buffer, int light) {
@@ -495,19 +495,19 @@ public class SpiderAssemblyTableRenderer extends KineticBlockEntityRenderer<Spid
 
 		float progress = be.getProcessingProgress(partialTicks);
 		float bend = Mth.sin(progress * Mth.PI) * ACTIVE_LEG_BEND;
-		boolean leftSide = activeSlot < 4;
+		boolean leftSide = (activeSlot % 2) == 0;
 		activeLeg.zRot += leftSide ? bend : -bend;
 	}
 
 	private static ModelPart getAnimatedLeg(ModelPart root, int slot) {
 		return switch (slot) {
 		case 0 -> root.getChild("left_front_leg");
-		case 1 -> root.getChild("left_middle_front_leg");
-		case 2 -> root.getChild("left_middle_hind_leg");
-		case 3 -> root.getChild("left_hind_leg");
-		case 4 -> root.getChild("right_front_leg");
-		case 5 -> root.getChild("right_middle_front_leg");
-		case 6 -> root.getChild("right_middle_hind_leg");
+		case 1 -> root.getChild("right_front_leg");
+		case 2 -> root.getChild("left_middle_front_leg");
+		case 3 -> root.getChild("right_middle_front_leg");
+		case 4 -> root.getChild("left_middle_hind_leg");
+		case 5 -> root.getChild("right_middle_hind_leg");
+		case 6 -> root.getChild("left_hind_leg");
 		case 7 -> root.getChild("right_hind_leg");
 		default -> null;
 		};
