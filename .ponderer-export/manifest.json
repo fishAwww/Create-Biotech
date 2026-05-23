@@ -281,12 +281,42 @@
         }
       }
     },
+    "ponderer:bio_packager": {
+      "sceneId": "ponderer:bio_packager",
+      "sceneKey": "ponderer:bio_packager",
+      "className": "com.nobodiiiii.createbiotech.ponder.generated.scenes.GeneratedBioPackager_bad667d8",
+      "status": "COMPLETE",
+      "contentHash": "d95244b7792ae72ef5e40e4fa78938c761685de32a1e6fac41c78b5251741d11",
+      "javaFiles": [
+        "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedBioPackager_bad667d8.java"
+      ],
+      "resourceFiles": [
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/basic.nbt",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/packager1.nbt"
+      ],
+      "langEntries": {
+        "zh_cn": {
+          "create_biotech.ponder.bio_packager_scene_1.header": "生物打包机 释放",
+          "create_biotech.ponder.bio_packager_scene_1.text_1": "接入红石信号...",
+          "create_biotech.ponder.bio_packager_scene_1.text_2": "生物打包机会从其附着的库存中提取装有生物的纸箱并释放到其上方",
+          "create_biotech.ponder.bio_packager_s_fe8b2.header": "生物打包机 捕捉",
+          "create_biotech.ponder.bio_packager_s_fe8b2.text_1": "生物打包机会自动提取附着库存中的纸箱，并捕捉被动态结构杀死的生物"
+        },
+        "en_us": {
+          "create_biotech.ponder.bio_packager_scene_1.header": "Scene 1",
+          "create_biotech.ponder.bio_packager_scene_1.text_1": "接入红石信号...",
+          "create_biotech.ponder.bio_packager_scene_1.text_2": "生物打包机会从其附着的库存中提取装有生物的纸箱并释放到其上方",
+          "create_biotech.ponder.bio_packager_s_fe8b2.header": "生物打包机 捕捉",
+          "create_biotech.ponder.bio_packager_s_fe8b2.text_1": "生物打包机会自动提取附着库存中的纸箱，并捕捉被动态结构杀死的生物"
+        }
+      }
+    },
     "ponderer:experience_pump": {
       "sceneId": "ponderer:experience_pump",
       "sceneKey": "ponderer:experience_pump",
       "className": "com.nobodiiiii.createbiotech.ponder.generated.scenes.GeneratedExperiencePump_e984f13b",
       "status": "COMPLETE",
-      "contentHash": "2b95596144d0276cb85ac2060a73cc22acc5cb496fe332eb601ba498ace3c5e9",
+      "contentHash": "1df27c178f7a9e7deb2cce13105d1a3f02c3b5905b5d0d7b120b70f526e7218c",
       "javaFiles": [
         "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedExperiencePump_e984f13b.java"
       ],
@@ -327,6 +357,91 @@
           "create_biotech.ponder.experience_pump_s_40666.text_3": "输出端不能直接将经验转化为物品",
           "create_biotech.ponder.experience_pump_s_40666.text_4": "你需要将经验通入经验母岩...",
           "create_biotech.ponder.experience_pump_s_40666.text_5": "催化成熟的经验簇会自然掉落，它存储的经验值远高于经验颗粒"
+        }
+      }
+    },
+    "ponderer:schrodingers_cat": {
+      "sceneId": "ponderer:schrodingers_cat",
+      "sceneKey": "ponderer:schrodingers_cat",
+      "className": "com.nobodiiiii.createbiotech.ponder.generated.scenes.GeneratedSchrodingersCat_646f5047",
+      "status": "COMPLETE",
+      "contentHash": "64d28f35dcc58ce628123af046c9a36e832e5cea159d609dc0fd58a93a623cb7",
+      "javaFiles": [
+        "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedSchrodingersCat_646f5047.java"
+      ],
+      "resourceFiles": [
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/basic.nbt"
+      ],
+      "langEntries": {
+        "zh_cn": {
+          "create_biotech.ponder.schrodingers_cat.header": "场景 1",
+          "create_biotech.ponder.schrodingers_cat.text_1": "薛定谔的猫会在其背后随机输出红石信号",
+          "create_biotech.ponder.schrodingers_cat.text_2": "其间隔时间和输出模式（持续信号/脉冲信号）可以在侧面配置"
+        },
+        "en_us": {
+          "create_biotech.ponder.schrodingers_cat.header": "Scene 1",
+          "create_biotech.ponder.schrodingers_cat.text_1": "薛定谔的猫会在其背后随机输出红石信号",
+          "create_biotech.ponder.schrodingers_cat.text_2": "其间隔时间和输出模式（持续信号/脉冲信号）可以在侧面配置"
+        }
+      }
+    },
+    "ponderer:slime_belt_connector": {
+      "sceneId": "ponderer:slime_belt_connector",
+      "sceneKey": "ponderer:slime_belt_connector",
+      "className": "com.nobodiiiii.createbiotech.ponder.generated.scenes.GeneratedSlimeBeltConnector_c6a43e38",
+      "status": "COMPLETE",
+      "contentHash": "40535c477d4efe269d1531ef76a5477949a76a1527242a4636b5b82d77ad8dc4",
+      "javaFiles": [
+        "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedSlimeBeltConnector_c6a43e38.java"
+      ],
+      "resourceFiles": [
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/slimebelt1.nbt",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/slimebelt3.nbt",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/slimebelt5.nbt"
+      ],
+      "langEntries": {
+        "zh_cn": {
+          "create_biotech.ponder.slime_belt_connector.header": "史莱姆传送带",
+          "create_biotech.ponder.slime_belt_connector.text_1": "史莱姆传送带可以像一般传送带一样传输物品",
+          "create_biotech.ponder.slime_belt_connector.text_2": "不同的是，物品不会在传送带末端被抛出，而是会继续运动到传送带背面",
+          "create_biotech.ponder.slime_belt_connector.text_3": "史莱姆传送带还可以竖直传动物品",
+          "create_biotech.ponder.slime_belt_connector.text_4": "相连的史莱姆传送带可以形成一个回环"
+        },
+        "en_us": {
+          "create_biotech.ponder.slime_belt_connector.header": "Scene 1",
+          "create_biotech.ponder.slime_belt_connector.text_1": "史莱姆传送带可以像一般传送带一样传输物品",
+          "create_biotech.ponder.slime_belt_connector.text_2": "不同的是，物品不会在传送带末端被抛出，而是会继续运动到传送带背面",
+          "create_biotech.ponder.slime_belt_connector.text_3": "史莱姆传送带还可以竖直传动物品",
+          "create_biotech.ponder.slime_belt_connector.text_4": "相连的史莱姆传送带可以形成一个回环"
+        }
+      }
+    },
+    "ponderer:spider_assembly_table": {
+      "sceneId": "ponderer:spider_assembly_table",
+      "sceneKey": "ponderer:spider_assembly_table",
+      "className": "com.nobodiiiii.createbiotech.ponder.generated.scenes.GeneratedSpiderAssemblyTable_f7772189",
+      "status": "COMPLETE",
+      "contentHash": "e13db1d2d8921548bad10aa28ee18803ce027cf6aafcb310ade2a2cd09aa4c92",
+      "javaFiles": [
+        "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedSpiderAssemblyTable_f7772189.java"
+      ],
+      "resourceFiles": [
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/spider.nbt"
+      ],
+      "langEntries": {
+        "zh_cn": {
+          "create_biotech.ponder.spider_assembly_table.header": "蜘蛛装配站",
+          "create_biotech.ponder.spider_assembly_table.text_1": "蜘蛛装配台可以执行序列装配配方",
+          "create_biotech.ponder.spider_assembly_table.text_2": "右键打开界面，在第一行放入装配所需要的机器...",
+          "create_biotech.ponder.spider_assembly_table.text_3": "在第二行放入装配所需原料",
+          "create_biotech.ponder.spider_assembly_table.text_4": "装配！"
+        },
+        "en_us": {
+          "create_biotech.ponder.spider_assembly_table.header": "Scene 1",
+          "create_biotech.ponder.spider_assembly_table.text_1": "蜘蛛装配台可以执行序列装配配方",
+          "create_biotech.ponder.spider_assembly_table.text_2": "右键打开界面，在第一行放入装配所需要的机器...",
+          "create_biotech.ponder.spider_assembly_table.text_3": "在第二行放入装配所需原料",
+          "create_biotech.ponder.spider_assembly_table.text_4": "装配！"
         }
       }
     }

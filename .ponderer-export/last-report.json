@@ -9,19 +9,17 @@
   "ignoredFindings": [],
   "sceneOutcomes": [
     {
-      "sceneId": "ponderer:experience_pump",
-      "sceneKey": "ponderer:experience_pump",
-      "className": "GeneratedExperiencePump_e984f13b",
+      "sceneId": "ponderer:spider_assembly_table",
+      "sceneKey": "ponderer:spider_assembly_table",
+      "className": "GeneratedSpiderAssemblyTable_f7772189",
       "status": "COMPLETE",
-      "replaced": false,
-      "exportedSegments": 2,
+      "replaced": true,
+      "exportedSegments": 1,
       "blankSegments": 0,
       "omittedSteps": 0,
       "ownedFiles": [
-        "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedExperiencePump_e984f13b.java",
-        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/ex_bumper.nbt",
-        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/exp1.nbt",
-        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/exp2.nbt"
+        "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedSpiderAssemblyTable_f7772189.java",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/spider.nbt"
       ],
       "messages": []
     }
