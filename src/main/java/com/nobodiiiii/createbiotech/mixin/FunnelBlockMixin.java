@@ -33,7 +33,7 @@ public abstract class FunnelBlockMixin {
 		if (worldFacing == null)
 			return;
 
-		BeltSurface surface = BeltSurfaceResolver.resolve(context.getLevel(), context.getClickedPos());
+		BeltSurface surface = BeltSurfaceResolver.resolveForPlacement(context.getLevel(), context.getClickedPos());
 		if (surface == null)
 			return;
 		Direction localFacing = surface.localize(worldFacing);
@@ -60,7 +60,7 @@ public abstract class FunnelBlockMixin {
 		if (worldFacing == null)
 			return;
 
-		BeltSurface surface = BeltSurfaceResolver.resolve(world, pos);
+		BeltSurface surface = BeltSurfaceResolver.resolveForPlacement(world, pos);
 		if (surface == null)
 			return;
 		// only react when the neighbour on the belt side changed

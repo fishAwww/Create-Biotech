@@ -12,42 +12,46 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Single entry point for "what belt surface is the funnel at {@code funnelPos} attached to?".
- * <p>
- * Two resolution paths:
- * <ol>
- *   <li><strong>Fast path</strong> — when the block at {@code funnelPos} is already a {@link BeltFunnelBlock}, the
- *       attached surface is encoded directly in the block state via
- *       {@link BeltFunnelStateExtensions#ATTACHMENT_SURFACE}. The belt may or may not still exist; we still get a
- *       valid {@link BeltSurface} for {@code localize/worldize/transformShape} purposes. Movement direction is
- *       queried from the (possibly missing) belt neighbour; if absent, falls back to the canonical forward —
- *       behavior consumers that need an exact movement must guard for the {@code null} return of
- *       {@link BeltSurfaceHost#surfaceFor}.</li>
- *   <li><strong>Scan path</strong> — for plain {@link com.simibubi.create.content.logistics.funnel.FunnelBlock}s
- *       being considered for placement, no state encoding exists yet. Scan the six orthogonal neighbours for a
- *       {@link BeltSurfaceHost} that exposes a matching surface.</li>
- * </ol>
+ * Two distinct entry points with non-overlapping contracts:
+ * <ul>
+ *   <li>{@link #resolve(BlockGetter, BlockPos)} — query an <strong>already-placed</strong> {@link BeltFunnelBlock}'s
+ *       attached surface. The attachment is read from {@link BeltFunnelStateExtensions#ATTACHMENT_SURFACE} encoded in
+ *       the block state, so the answer survives the belt being destroyed (used by the revert hook). Returns
+ *       {@code null} for anything that isn't a BeltFunnel — including a plain {@link com.simibubi.create.content.logistics.funnel.FunnelBlock}
+ *       that happens to sit next to a belt. <strong>This is the entry point all runtime queries (rendering, mode
+ *       determination, interaction handler) should use</strong>; the null return is what stops us from accidentally
+ *       tilting a non-specialised funnel's flap (and similar leaks).</li>
+ *   <li>{@link #resolveForPlacement(BlockGetter, BlockPos)} — used only during placement / state-conversion, when the
+ *       block at {@code funnelPos} doesn't yet (or no longer) carry a BeltFunnel encoding. Scans the six orthogonal
+ *       neighbours for a {@link BeltSurfaceHost} whose outward normal points back at {@code funnelPos}.</li>
+ * </ul>
  */
 public final class BeltSurfaceResolver {
 
 	private BeltSurfaceResolver() {}
 
+	/**
+	 * Resolve via the block state's encoded attachment. Returns {@code null} unless the block at {@code funnelPos}
+	 * is an {@link BeltFunnelBlock} carrying a valid {@link BeltFunnelStateExtensions#ATTACHMENT_SURFACE}.
+	 */
 	@Nullable
 	public static BeltSurface resolve(BlockGetter world, BlockPos funnelPos) {
 		if (world == null || funnelPos == null)
 			return null;
-
-		// Fast path: BeltFunnel state already encodes the attached surface.
 		BlockState selfState = world.getBlockState(funnelPos);
-		if (selfState.getBlock() instanceof BeltFunnelBlock) {
-			BeltSurface fromState = resolveFromBeltFunnelState(world, funnelPos, selfState);
-			if (fromState != null)
-				return fromState;
-			// Fall through to scan in case ATTACHMENT_SURFACE happens to be at its default and a real
-			// surface exists in a different direction — preserves vanilla "funnel on top of horizontal belt".
-		}
+		if (!(selfState.getBlock() instanceof BeltFunnelBlock))
+			return null;
+		return resolveFromBeltFunnelState(world, funnelPos, selfState);
+	}
 
-		// Scan path: find a host whose outward normal points back at the funnel.
+	/**
+	 * Scan neighbours for a belt-side surface that would accept a funnel at {@code funnelPos}. Used by the placement
+	 * mixin when {@code funnelPos} doesn't yet hold a BeltFunnel state (so {@link #resolve} would return null).
+	 */
+	@Nullable
+	public static BeltSurface resolveForPlacement(BlockGetter world, BlockPos funnelPos) {
+		if (world == null || funnelPos == null)
+			return null;
 		for (Direction d : Direction.values()) {
 			BlockPos neighbourPos = funnelPos.relative(d);
 			if (world instanceof Level level && !level.isLoaded(neighbourPos))

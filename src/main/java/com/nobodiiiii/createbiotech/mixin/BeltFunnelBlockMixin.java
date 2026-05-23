@@ -60,7 +60,17 @@ public abstract class BeltFunnelBlockMixin {
 		at = @At("HEAD"), cancellable = true, remap = false)
 	private static void createBiotech$getShapeForPosition(BlockGetter world, BlockPos pos, Direction localFacing,
 		boolean extracting, CallbackInfoReturnable<Shape> cir) {
+		// Two call sites with different state at {@code pos}:
+		// 1. runtime updateShape on an already-placed BeltFunnel — state-encoded {@link #resolve} succeeds.
+		// 2. placement (our buildBeltFunnelState) before the block is in world — {@code pos} is still AIR;
+		//    fall back to the neighbour scan so SHAPE is derived from the same surface we just discovered.
+		// Without the fallback, vanilla's stock implementation looks at pos.below() only, doesn't see the belt
+		// attached to a lateral face, and always returns the perpendicular (PUSHING/PULLING) shape — which leaves
+		// the placed funnel's body unrotated (vanilla geometry) while the rest of our tilt machinery treats it
+		// as a RETRACTED-style attached funnel. Result is the "wrong body + correct base" hybrid.
 		BeltSurface surface = BeltSurfaceResolver.resolve(world, pos);
+		if (surface == null)
+			surface = BeltSurfaceResolver.resolveForPlacement(world, pos);
 		if (surface == null)
 			return;
 		// localFacing here is in surface-local (canonical) frame; project back to world to compare against
