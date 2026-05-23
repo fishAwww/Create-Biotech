@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.nobodiiiii.createbiotech.content.beltsurface.BeltFunnelStateExtensions;
 import com.nobodiiiii.createbiotech.content.beltsurface.BeltSurface;
+import com.nobodiiiii.createbiotech.content.beltsurface.BeltSurfaceHost;
 import com.nobodiiiii.createbiotech.content.beltsurface.BeltSurfaceResolver;
 import com.simibubi.create.content.logistics.funnel.BeltFunnelBlock;
 import com.simibubi.create.content.logistics.funnel.BeltFunnelBlock.Shape;
@@ -21,6 +22,7 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 @Mixin(BeltFunnelBlock.class)
@@ -69,10 +71,35 @@ public abstract class BeltFunnelBlockMixin {
 			worldFacing.getAxis() != surface.movementFacing().getAxis() ? perpendicular : Shape.RETRACTED);
 	}
 
+	/**
+	 * Mirror vanilla's {@code isOnValidBelt} semantics, but extended for the surface model: a BeltFunnel stays
+	 * specialised iff there is still an actual {@link BeltSurfaceHost} adjacent in the encoded
+	 * {@link BeltFunnelStateExtensions#ATTACHMENT_SURFACE} direction <em>and</em> that host still exposes a surface
+	 * with the matching outward normal. When either condition fails (belt destroyed, replaced with a different
+	 * orientation, casing change that drops the track, etc.), this returns {@code false} and vanilla's
+	 * {@code updateShape} reverts the BeltFunnel to its parent {@link FunnelBlock} — at which point the
+	 * {@link #createBiotech$worldizeRevertFacing} {@code @WrapOperation} above feeds the original world facing back
+	 * into {@link FunnelBlock#FACING} using {@code worldizeCanonical(HORIZONTAL_FACING, outward)}.
+	 * <p>
+	 * Do <em>not</em> route this through {@link BeltSurfaceResolver#resolve}: that resolver's BeltFunnel fast path
+	 * synthesises a phantom surface from the state alone (using canonical forward) and would always succeed even
+	 * after the belt is gone — defeating the revert.
+	 */
 	@Inject(method = "isOnValidBelt(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
 		at = @At("HEAD"), cancellable = true, remap = false)
 	private static void createBiotech$isOnValidBelt(BlockState state, LevelReader world, BlockPos pos,
 		CallbackInfoReturnable<Boolean> cir) {
+		Direction attachment = state.getOptionalValue(BeltFunnelStateExtensions.ATTACHMENT_SURFACE).orElse(null);
+		if (attachment != null) {
+			BlockPos beltPos = pos.relative(attachment);
+			BlockEntity be = world.getBlockEntity(beltPos);
+			boolean valid = be instanceof BeltSurfaceHost host
+				&& host.surfaceFor(attachment.getOpposite()) != null;
+			cir.setReturnValue(valid);
+			return;
+		}
+		// No attachment encoded yet (e.g. vanilla's placement-time check on a fresh default state):
+		// fall back to a surface scan so the original placement path can still find a neighbouring belt.
 		if (BeltSurfaceResolver.resolve(world, pos) != null)
 			cir.setReturnValue(true);
 	}
