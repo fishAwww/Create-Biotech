@@ -5,10 +5,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.nobodiiiii.createbiotech.content.beltsurface.BeltFunnelStateExtensions;
 import com.nobodiiiii.createbiotech.content.beltsurface.BeltSurface;
 import com.nobodiiiii.createbiotech.content.beltsurface.BeltSurfaceResolver;
 import com.simibubi.create.content.logistics.funnel.BeltFunnelBlock;
 import com.simibubi.create.content.logistics.funnel.BeltFunnelBlock.Shape;
+import com.simibubi.create.content.logistics.funnel.FunnelBlock;
 import com.simibubi.create.foundation.advancement.AllAdvancements;
 
 import net.minecraft.core.BlockPos;
@@ -17,11 +19,40 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.state.BlockState;
 
 @Mixin(BeltFunnelBlock.class)
 public abstract class BeltFunnelBlockMixin {
+
+	/**
+	 * Vanilla {@link BeltFunnelBlock#updateShape} reverts a BeltFunnel to its parent FunnelBlock when the belt is gone,
+	 * copying {@code state.getValue(HORIZONTAL_FACING)} straight into {@code FunnelBlock.FACING}. Since we store
+	 * {@code HORIZONTAL_FACING} in surface-local (canonical) frame, that copy puts a local-frame value into a
+	 * world-frame slot — the reverted funnel ends up facing the wrong direction (the long-standing Bug 2).
+	 * <p>
+	 * Intercept the single {@code setValue(FunnelBlock.FACING, ...)} call in {@code updateShape} and worldize the
+	 * value first using the attached surface that's still encoded in {@link BeltFunnelStateExtensions#ATTACHMENT_SURFACE}.
+	 * Other {@code setValue} calls in {@code updateShape} (POWERED / EXTRACTING / SHAPE) pass through unchanged
+	 * because the property check below filters by reference identity.
+	 */
+	@Inject(method = "updateShape(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;",
+		at = @At("RETURN"), cancellable = true)
+	private void createBiotech$worldizeRevertFacing(BlockState state, Direction direction, BlockState neighbour,
+		LevelAccessor world, BlockPos pos, BlockPos neighbourPos, CallbackInfoReturnable<BlockState> cir) {
+		BlockState result = cir.getReturnValue();
+		// Vanilla returns a FunnelBlock state only when reverting; non-revert paths keep returning a BeltFunnel.
+		if (!(result.getBlock() instanceof FunnelBlock))
+			return;
+		// THE FIX: worldize the local-frame HORIZONTAL_FACING using the stored ATTACHMENT_SURFACE before
+		// it lands in FunnelBlock.FACING (which is world frame). Restores the funnel's original world
+		// orientation that placement captured — long-standing Bug 2.
+		Direction localFacing = state.getValue(BeltFunnelBlock.HORIZONTAL_FACING);
+		Direction attachment = state.getOptionalValue(BeltFunnelStateExtensions.ATTACHMENT_SURFACE).orElse(Direction.DOWN);
+		Direction worldFacing = BeltSurface.worldizeCanonical(localFacing, attachment.getOpposite());
+		cir.setReturnValue(result.setValue(FunnelBlock.FACING, worldFacing));
+	}
 
 	@Inject(method = "getShapeForPosition(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Z)Lcom/simibubi/create/content/logistics/funnel/BeltFunnelBlock$Shape;",
 		at = @At("HEAD"), cancellable = true, remap = false)
@@ -30,10 +61,12 @@ public abstract class BeltFunnelBlockMixin {
 		BeltSurface surface = BeltSurfaceResolver.resolve(world, pos);
 		if (surface == null)
 			return;
-		// localFacing is in surface-local frame; surface forward (= belt motion) is local NORTH.
-		// Same axis as forward → RETRACTED; perpendicular → PUSHING/PULLING.
+		// localFacing here is in surface-local (canonical) frame; project back to world to compare against
+		// the belt's actual movement axis. RETRACTED iff the funnel sits in-line with belt motion.
 		Shape perpendicular = extracting ? Shape.PUSHING : Shape.PULLING;
-		cir.setReturnValue(localFacing.getAxis() == Direction.NORTH.getAxis() ? Shape.RETRACTED : perpendicular);
+		Direction worldFacing = surface.worldize(localFacing);
+		cir.setReturnValue(
+			worldFacing.getAxis() != surface.movementFacing().getAxis() ? perpendicular : Shape.RETRACTED);
 	}
 
 	@Inject(method = "isOnValidBelt(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",

@@ -14,20 +14,20 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 /**
  * One side of a belt that a funnel can attach to.
  * <p>
- * The surface defines a local right-handed coordinate frame:
+ * Local frame is built from {@link #outwardNormal} alone, using a canonical {@code localForward} rule:
+ * if {@code outwardNormal.axis == Y} then {@code localForward = world NORTH}, otherwise {@code localForward = world UP}.
+ * This makes {@code localize}/{@code worldize} pure functions of {@code outwardNormal} (independent of belt motion or
+ * any other run-time state).
  * <ul>
- *   <li>{@code +Y_local} (local up) maps to {@link #outwardNormal} in world — the outward face of the belt.</li>
- *   <li>{@code -Z_local} (local forward) maps to {@link #movementFacing} in world — the direction belt items move along this surface.</li>
- *   <li>{@code +X_local} (local right) is the cross product, derived once and stored as {@link #surfaceToWorld}.</li>
+ *   <li>{@code outwardNormal == UP} (the vanilla case — funnel sits on top of a horizontal belt) yields an identity
+ *       mapping between local and world frames, so existing vanilla / Ponder code that writes {@code HORIZONTAL_FACING}
+ *       in world frame keeps working unchanged.</li>
+ *   <li>{@code outwardNormal} on a horizontal axis (vertical / sideways belts) maps {@code local NORTH ↔ world UP},
+ *       so e.g. {@code HORIZONTAL_FACING = SOUTH} means "funnel mouth points world DOWN" for a vertical belt's lateral
+ *       attachment — the canonical "items go up belt, into chest above" geometry.</li>
  * </ul>
- * For a horizontal belt with FRONT track, this frame coincides with world; for any other belt geometry,
- * {@link #surfaceToWorld} is the rigid rotation that aligns the local frame with the surface in world.
- * <p>
- * {@link #outwardNormal} is always discretised to one of the six cardinal directions (the funnel attachment side).
- * The continuous tilt — used purely for visual / collision geometry — lives in {@link #surfaceToWorld}.
- * <p>
- * Construction is constrained: {@code outwardNormal} and {@code movementFacing} must be on different axes
- * (otherwise the surface frame is degenerate).
+ * {@link #movementFacing} is retained for run-time behaviour (mode determination, blocking-vs-perpendicular checks);
+ * it is <em>not</em> used by {@link #localize}, {@link #worldize}, {@link #transformShape}, or {@link #surfaceToWorld}.
  */
 public record BeltSurface(
 	BeltSurfaceHost host,
@@ -47,48 +47,18 @@ public record BeltSurface(
 	public static BeltSurface of(BeltSurfaceHost host, BlockPos beltPos, int segmentIndex,
 		Direction outwardNormal, Direction movementFacing) {
 		return new BeltSurface(host, beltPos, segmentIndex, outwardNormal, movementFacing,
-			computeSurfaceToWorld(outwardNormal, movementFacing));
+			computeSurfaceToWorld(outwardNormal));
 	}
 
-	/** The block position where a funnel attached to this surface sits. */
-	public BlockPos funnelPos() {
-		return beltPos.relative(outwardNormal);
+	/** The canonical {@code localForward} direction (in world frame) determined solely by {@code outwardNormal}. */
+	public static Direction canonicalForward(Direction outwardNormal) {
+		return outwardNormal.getAxis() == Direction.Axis.Y ? Direction.NORTH : Direction.UP;
 	}
 
-	/** Map a surface-local direction to world. */
-	public Direction worldize(Direction localDir) {
-		return switch (localDir) {
-			case UP -> outwardNormal;
-			case DOWN -> outwardNormal.getOpposite();
-			case NORTH -> movementFacing;
-			case SOUTH -> movementFacing.getOpposite();
-			case EAST -> worldRight();
-			case WEST -> worldRight().getOpposite();
-		};
-	}
-
-	/** Map a world direction to surface-local frame. Throws on non-axis-aligned input (shouldn't happen with Direction). */
-	public Direction localize(Direction worldDir) {
-		if (worldDir == outwardNormal)
-			return Direction.UP;
-		if (worldDir == outwardNormal.getOpposite())
-			return Direction.DOWN;
-		if (worldDir == movementFacing)
-			return Direction.NORTH;
-		if (worldDir == movementFacing.getOpposite())
-			return Direction.SOUTH;
-		Direction right = worldRight();
-		if (worldDir == right)
-			return Direction.EAST;
-		if (worldDir == right.getOpposite())
-			return Direction.WEST;
-		throw new IllegalStateException(
-			"Cannot localize " + worldDir + " (surface up=" + outwardNormal + ", fwd=" + movementFacing + ")");
-	}
-
-	/** Surface +X axis in world = {@code movementFacing × outwardNormal} (right-hand rule). */
-	public Direction worldRight() {
-		Vec3i f = movementFacing.getNormal();
+	/** The canonical {@code localRight} direction (in world frame): {@code canonicalForward × outwardNormal}. */
+	public static Direction canonicalRight(Direction outwardNormal) {
+		Direction fwd = canonicalForward(outwardNormal);
+		Vec3i f = fwd.getNormal();
 		Vec3i u = outwardNormal.getNormal();
 		int x = f.getY() * u.getZ() - f.getZ() * u.getY();
 		int y = f.getZ() * u.getX() - f.getX() * u.getZ();
@@ -98,7 +68,59 @@ public record BeltSurface(
 			if (n.getX() == x && n.getY() == y && n.getZ() == z)
 				return d;
 		}
-		throw new IllegalStateException("worldRight produced non-cardinal vector: (" + x + "," + y + "," + z + ")");
+		throw new IllegalStateException("canonicalRight produced non-cardinal vector for outward=" + outwardNormal);
+	}
+
+	/** The block position where a funnel attached to this surface sits. */
+	public BlockPos funnelPos() {
+		return beltPos.relative(outwardNormal);
+	}
+
+	/** Map a surface-local direction to world, using the canonical frame. */
+	public Direction worldize(Direction localDir) {
+		return worldizeCanonical(localDir, outwardNormal);
+	}
+
+	/** Map a world direction to surface-local frame, using the canonical frame. */
+	public Direction localize(Direction worldDir) {
+		return localizeCanonical(worldDir, outwardNormal);
+	}
+
+	/** Stateless canonical {@code localDir → worldDir} mapping. */
+	public static Direction worldizeCanonical(Direction localDir, Direction outwardNormal) {
+		return switch (localDir) {
+			case UP -> outwardNormal;
+			case DOWN -> outwardNormal.getOpposite();
+			case NORTH -> canonicalForward(outwardNormal);
+			case SOUTH -> canonicalForward(outwardNormal).getOpposite();
+			case EAST -> canonicalRight(outwardNormal);
+			case WEST -> canonicalRight(outwardNormal).getOpposite();
+		};
+	}
+
+	/** Stateless canonical {@code worldDir → localDir} mapping. */
+	public static Direction localizeCanonical(Direction worldDir, Direction outwardNormal) {
+		if (worldDir == outwardNormal)
+			return Direction.UP;
+		if (worldDir == outwardNormal.getOpposite())
+			return Direction.DOWN;
+		Direction fwd = canonicalForward(outwardNormal);
+		if (worldDir == fwd)
+			return Direction.NORTH;
+		if (worldDir == fwd.getOpposite())
+			return Direction.SOUTH;
+		Direction right = canonicalRight(outwardNormal);
+		if (worldDir == right)
+			return Direction.EAST;
+		if (worldDir == right.getOpposite())
+			return Direction.WEST;
+		throw new IllegalStateException(
+			"Cannot localize " + worldDir + " under outward=" + outwardNormal);
+	}
+
+	/** Surface +X axis in world (canonical). */
+	public Direction worldRight() {
+		return canonicalRight(outwardNormal);
 	}
 
 	/** Rotate a position around the block centre {@code (.5, .5, .5)} by {@link #surfaceToWorld}. */
@@ -160,9 +182,10 @@ public record BeltSurface(
 		return Shapes.create(minX, minY, minZ, maxX, maxY, maxZ);
 	}
 
-	private static Quaternionf computeSurfaceToWorld(Direction outwardNormal, Direction movementFacing) {
+	private static Quaternionf computeSurfaceToWorld(Direction outwardNormal) {
+		Direction forward = canonicalForward(outwardNormal);
 		Vec3i u = outwardNormal.getNormal();
-		Vec3i f = movementFacing.getNormal();
+		Vec3i f = forward.getNormal();
 		// right = forward × up (right-hand rule)
 		float rx = f.getY() * u.getZ() - f.getZ() * u.getY();
 		float ry = f.getZ() * u.getX() - f.getX() * u.getZ();

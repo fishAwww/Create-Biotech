@@ -6,6 +6,7 @@
   "refmap": "create_biotech.refmap.json",
   "mixins": [
     "AbstractContraptionEntityBufferPadMixin",
+    "AbstractHorizontalFunnelBlockMixin",
     "BasinRecipeMixin",
     "BasinBlockEntityMixin",
     "BasinBlockMixin",
@@ -13,6 +14,7 @@
     "BlockBreakingMovementBehaviourMixin",
     "BeltMovementHandlerMixin",
     "BeltFunnelBlockMixin",
+    "BeltFunnelBlockStateMixin",
     "BeltFunnelShapeMixin",
     "FunnelBlockMixin",
     "FunnelBlockEntityMixin",

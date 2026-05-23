@@ -5,6 +5,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.nobodiiiii.createbiotech.content.beltsurface.BeltFunnelStateExtensions;
 import com.nobodiiiii.createbiotech.content.beltsurface.BeltSurface;
 import com.nobodiiiii.createbiotech.content.beltsurface.BeltSurfaceResolver;
 import com.simibubi.create.content.logistics.funnel.AbstractFunnelBlock;
@@ -80,6 +81,7 @@ public abstract class FunnelBlockMixin {
 			self.getEquivalentBeltFunnel(world, pos, localState), pos);
 		return beltFunnel
 			.setValue(BeltFunnelBlock.HORIZONTAL_FACING, localFacing)
+			.setValue(BeltFunnelStateExtensions.ATTACHMENT_SURFACE, surface.outwardNormal().getOpposite())
 			.setValue(BeltFunnelBlock.SHAPE,
 				BeltFunnelBlock.getShapeForPosition(world, pos, localFacing,
 					vanillaState.getValue(FunnelBlock.EXTRACTING)));
