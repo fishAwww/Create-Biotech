@@ -8,6 +8,7 @@ bin/
 *.log
 /AGENTS.md
 /CLAUDE.md
+/.env
 
 /.idea/
 /.vscode/
