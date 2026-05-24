@@ -9,20 +9,18 @@
   "ignoredFindings": [],
   "sceneOutcomes": [
     {
-      "sceneId": "ponderer:power_belt_connector",
-      "sceneKey": "ponderer:power_belt_connector",
-      "className": "GeneratedPowerBeltConnector_f5338733",
+      "sceneId": "ponderer:ghast_hot_air_balloon_assembly_station",
+      "sceneKey": "ponderer:ghast_hot_air_balloon_assembly_station",
+      "className": "GeneratedGhastHotAirBalloonAssemblyStation_0bf36ffd",
       "status": "COMPLETE",
       "replaced": false,
-      "exportedSegments": 1,
+      "exportedSegments": 2,
       "blankSegments": 0,
       "omittedSteps": 0,
       "ownedFiles": [
-        "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedPowerBeltConnector_f5338733.java",
-        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/power_belt_connector_base.nbt",
-        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/power_belt_connector_64rpm.nbt",
-        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/power_belt_connector_144rpm.nbt",
-        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/power_belt_connector_80rpm.nbt"
+        "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedGhastHotAirBalloonAssemblyStation_0bf36ffd.java",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/ghast_hot_air_balloon_assembly_station_base.nbt",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/ghast_hot_air_balloon_assembly_station_rope.nbt"
       ],
       "messages": []
     }

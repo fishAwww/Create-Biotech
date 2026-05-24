@@ -6,13 +6,16 @@ import com.mojang.logging.LogUtils;
 import net.createmod.catnip.math.Pointing;
 import net.createmod.ponder.api.PonderPalette;
 import net.createmod.ponder.api.element.ElementLink;
+import net.createmod.ponder.api.element.EntityElement;
 import net.createmod.ponder.api.element.InputElementBuilder;
 import net.createmod.ponder.api.element.TextElementBuilder;
 import net.createmod.ponder.api.element.WorldSectionElement;
 import net.createmod.ponder.api.scene.SceneBuilder;
 import net.createmod.ponder.api.scene.Selection;
+import net.createmod.ponder.foundation.PonderScene;
 import net.createmod.ponder.foundation.instruction.DisplayWorldSectionInstruction;
 import net.createmod.ponder.foundation.instruction.FadeOutOfSceneInstruction;
+import net.createmod.ponder.foundation.instruction.TickingInstruction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
@@ -31,6 +34,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
@@ -45,6 +49,7 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 
+import javax.annotation.Nullable;
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.InputStream;
@@ -56,6 +61,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 import java.util.zip.GZIPInputStream;
 
@@ -64,9 +71,230 @@ public final class GeneratedPonderSupport {
 
     public static final class Context {
         final Map<String, ElementLink<WorldSectionElement>> sectionLinks = new HashMap<>();
+        final Map<String, List<ElementLink<EntityElement>>> entityLinks = new HashMap<>();
         final Set<Long> visibleBlockKeys = new HashSet<>();
         final Set<Long> hiddenBlockKeys = new HashSet<>();
         boolean allBlocksVisible;
+    }
+
+    private static final class EntityMoveTarget {
+        final Entity entity;
+        final Vec3 startPos;
+
+        private EntityMoveTarget(Entity entity, Vec3 startPos) {
+            this.entity = entity;
+            this.startPos = startPos;
+        }
+    }
+
+    private static final class EntityMoveInstruction extends TickingInstruction {
+        @Nullable
+        private final List<ElementLink<EntityElement>> linkedTargets;
+        @Nullable
+        private final Selection selection;
+        @Nullable
+        private final ResourceLocation entityFilter;
+        private final Vec3 totalOffset;
+        private final boolean walkAnimation;
+        private final float walkAnimationSpeed;
+        private final List<EntityMoveTarget> targets = new ArrayList<>();
+
+        private EntityMoveInstruction(@Nullable List<ElementLink<EntityElement>> linkedTargets,
+                                      @Nullable Selection selection,
+                                      @Nullable ResourceLocation entityFilter,
+                                      Vec3 totalOffset,
+                                      int duration,
+                                      boolean walkAnimation) {
+            super(false, duration);
+            this.linkedTargets = linkedTargets == null ? null : List.copyOf(linkedTargets);
+            this.selection = selection;
+            this.entityFilter = entityFilter;
+            this.totalOffset = totalOffset;
+            this.walkAnimation = walkAnimation;
+            this.walkAnimationSpeed = computeWalkAnimationSpeed(totalOffset, duration);
+        }
+
+        @Override
+        protected void firstTick(PonderScene scene) {
+            super.firstTick(scene);
+            if (linkedTargets != null) {
+                for (ElementLink<EntityElement> link : linkedTargets) {
+                    EntityElement element = scene.resolve(link);
+                    if (element == null) {
+                        continue;
+                    }
+                    element.ifPresent(this::collectTarget);
+                }
+                return;
+            }
+
+            scene.forEachWorldEntity(Entity.class, this::collectTarget);
+        }
+
+        @Override
+        public void tick(PonderScene scene) {
+            super.tick(scene);
+            if (targets.isEmpty()) {
+                return;
+            }
+
+            int elapsedTicks = totalTicks - remainingTicks;
+            double progress = Math.min(1.0, elapsedTicks / (double) totalTicks);
+
+            for (EntityMoveTarget target : targets) {
+                Entity entity = target.entity;
+                if (entity == null || !entity.isAlive()) {
+                    continue;
+                }
+
+                Vec3 targetPos = target.startPos.add(totalOffset.scale(progress));
+                entity.setPos(targetPos.x, targetPos.y, targetPos.z);
+                entity.setDeltaMovement(Vec3.ZERO);
+                entity.setOldPosAndRot();
+                if (walkAnimation && progress < 1.0) {
+                    applyWalkAnimation(entity, walkAnimationSpeed);
+                } else {
+                    stopWalkAnimation(entity);
+                }
+            }
+        }
+
+        private void collectTarget(Entity entity) {
+            if (entity == null || !entity.isAlive() || entity instanceof ItemEntity) {
+                return;
+            }
+            if (selection != null && !selection.test(entity.blockPosition())) {
+                return;
+            }
+            if (!matchesEntityType(entity, entityFilter)) {
+                return;
+            }
+            targets.add(new EntityMoveTarget(entity, entity.position()));
+        }
+    }
+
+    private static final class EntityEntranceInstruction extends TickingInstruction {
+        private final ElementLink<EntityElement> entityLink;
+        private final Vec3 targetPos;
+        private final Vec3 entranceOffset;
+
+        private EntityEntranceInstruction(ElementLink<EntityElement> entityLink,
+                                          Vec3 targetPos,
+                                          Vec3 entranceOffset,
+                                          int duration) {
+            super(false, duration);
+            this.entityLink = entityLink;
+            this.targetPos = targetPos;
+            this.entranceOffset = entranceOffset;
+        }
+
+        @Override
+        protected void firstTick(PonderScene scene) {
+            super.firstTick(scene);
+            positionEntity(scene, targetPos.add(entranceOffset));
+        }
+
+        @Override
+        public void tick(PonderScene scene) {
+            super.tick(scene);
+            double fade = totalTicks <= 0 ? 0.0d : remainingTicks / (double) totalTicks;
+            positionEntity(scene, targetPos.add(entranceOffset.scale(fade * fade)));
+        }
+
+        private void positionEntity(PonderScene scene, Vec3 pos) {
+            EntityElement element = scene.resolve(entityLink);
+            if (element == null) {
+                return;
+            }
+            element.ifPresent(entity -> {
+                if (entity == null || !entity.isAlive()) {
+                    return;
+                }
+                entity.setPos(pos.x, pos.y, pos.z);
+                entity.setDeltaMovement(Vec3.ZERO);
+                entity.setOldPosAndRot();
+                stopWalkAnimation(entity);
+            });
+        }
+    }
+
+    private static final class EntityExitInstruction extends TickingInstruction {
+        @Nullable
+        private final List<ElementLink<EntityElement>> linkedTargets;
+        @Nullable
+        private final Selection selection;
+        @Nullable
+        private final ResourceLocation entityFilter;
+        private final Vec3 exitOffset;
+        private final List<EntityMoveTarget> targets = new ArrayList<>();
+
+        private EntityExitInstruction(@Nullable List<ElementLink<EntityElement>> linkedTargets,
+                                      @Nullable Selection selection,
+                                      @Nullable ResourceLocation entityFilter,
+                                      Vec3 exitOffset,
+                                      int duration) {
+            super(false, duration);
+            this.linkedTargets = linkedTargets == null ? null : List.copyOf(linkedTargets);
+            this.selection = selection;
+            this.entityFilter = entityFilter;
+            this.exitOffset = exitOffset;
+        }
+
+        @Override
+        protected void firstTick(PonderScene scene) {
+            super.firstTick(scene);
+            if (linkedTargets != null) {
+                for (ElementLink<EntityElement> link : linkedTargets) {
+                    EntityElement element = scene.resolve(link);
+                    if (element == null) {
+                        continue;
+                    }
+                    element.ifPresent(this::collectTarget);
+                }
+                return;
+            }
+
+            scene.forEachWorldEntity(Entity.class, this::collectTarget);
+        }
+
+        @Override
+        public void tick(PonderScene scene) {
+            super.tick(scene);
+            if (targets.isEmpty()) {
+                return;
+            }
+
+            double progress = Math.min(1.0d, (totalTicks - remainingTicks) / (double) totalTicks);
+            boolean finished = remainingTicks == 0;
+            for (EntityMoveTarget target : targets) {
+                Entity entity = target.entity;
+                if (entity == null || !entity.isAlive()) {
+                    continue;
+                }
+
+                Vec3 targetPos = target.startPos.add(exitOffset.scale(progress * progress));
+                entity.setPos(targetPos.x, targetPos.y, targetPos.z);
+                entity.setDeltaMovement(Vec3.ZERO);
+                entity.setOldPosAndRot();
+                stopWalkAnimation(entity);
+                if (finished) {
+                    entity.discard();
+                }
+            }
+        }
+
+        private void collectTarget(Entity entity) {
+            if (entity == null || !entity.isAlive() || entity instanceof ItemEntity) {
+                return;
+            }
+            if (selection != null && !selection.test(entity.blockPosition())) {
+                return;
+            }
+            if (!matchesEntityType(entity, entityFilter)) {
+                return;
+            }
+            targets.add(new EntityMoveTarget(entity, entity.position()));
+        }
     }
 
     private GeneratedPonderSupport() {
@@ -125,11 +353,33 @@ public final class GeneratedPonderSupport {
 
     public static void createEntity(SceneBuilder scene, String entityId, Vec3 pos, Vec3 lookAt,
                                     Float yaw, Float pitch, String nbt) {
+        createEntity(scene, null, entityId, pos, lookAt, yaw, pitch, nbt, null, null, null, null);
+    }
+
+    public static void createEntity(SceneBuilder scene, Context context, String entityId, Vec3 pos, Vec3 lookAt,
+                                    Float yaw, Float pitch, String nbt, String linkId) {
+        createEntity(scene, context, entityId, pos, lookAt, yaw, pitch, nbt, linkId, null, null, null);
+    }
+
+    public static void createEntity(SceneBuilder scene, Context context, String entityId, Vec3 pos, Vec3 lookAt,
+                                    Float yaw, Float pitch, String nbt, String linkId,
+                                    String entranceAnimation, Integer entranceDuration) {
+        createEntity(scene, context, entityId, pos, lookAt, yaw, pitch, nbt, linkId,
+            entranceAnimation, entranceDuration, null);
+    }
+
+    public static void createEntity(SceneBuilder scene, Context context, String entityId, Vec3 pos, Vec3 lookAt,
+                                    Float yaw, Float pitch, String nbt, String linkId,
+                                    String entranceAnimation, Integer entranceDuration, String direction) {
         ResourceLocation loc = entityId == null ? null : ResourceLocation.tryParse(entityId);
         if (loc == null) {
             return;
         }
-        scene.world().createEntity((Level level) -> {
+        Vec3 entranceOffset = entityEntranceOffset(entranceAnimation, direction);
+        int resolvedEntranceDuration = entranceDuration == null ? 20 : Math.max(0, entranceDuration);
+        boolean animatedEntrance = entranceOffset != null && resolvedEntranceDuration > 0;
+        Vec3 spawnPos = animatedEntrance ? pos.add(entranceOffset) : pos;
+        ElementLink<EntityElement> entityLink = scene.world().createEntity((Level level) -> {
             EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(loc).orElse(null);
             if (type == null) {
                 return null;
@@ -138,7 +388,7 @@ public final class GeneratedPonderSupport {
             if (entity == null) {
                 return null;
             }
-            entity.setPosRaw(pos.x, pos.y, pos.z);
+            entity.setPosRaw(spawnPos.x, spawnPos.y, spawnPos.z);
             entity.setOldPosAndRot();
             Vec3 targetLook = lookAt == null ? pos.add(0, 0, -1) : lookAt;
             entity.lookAt(EntityAnchorArgument.Anchor.FEET, targetLook);
@@ -155,6 +405,7 @@ public final class GeneratedPonderSupport {
             }
             entity.setNoGravity(true);
             entity.setDeltaMovement(Vec3.ZERO);
+            stopWalkAnimation(entity);
             if (nbt != null && !nbt.isBlank()) {
                 try {
                     CompoundTag patch = TagParser.parseTag(nbt);
@@ -167,10 +418,19 @@ public final class GeneratedPonderSupport {
             }
             return entity;
         });
+        registerEntityLink(context, linkId, entityLink);
+        if (animatedEntrance) {
+            scene.addInstruction(new EntityEntranceInstruction(entityLink, pos, entranceOffset, resolvedEntranceDuration));
+        }
     }
 
     public static void createItemEntity(SceneBuilder scene, String itemId, int count, Vec3 pos,
                                         Vec3 motion, String nbt) {
+        createItemEntity(scene, null, itemId, count, pos, motion, nbt, null);
+    }
+
+    public static void createItemEntity(SceneBuilder scene, Context context, String itemId, int count, Vec3 pos,
+                                        Vec3 motion, String nbt, String linkId) {
         ResourceLocation loc = itemId == null ? null : ResourceLocation.tryParse(itemId);
         Item item = loc == null ? null : BuiltInRegistries.ITEM.getOptional(loc).orElse(null);
         if (item == null) {
@@ -184,7 +444,7 @@ public final class GeneratedPonderSupport {
             }
         }
         CompoundTag finalPatch = patch;
-        scene.world().createEntity((Level level) -> {
+        ElementLink<EntityElement> entityLink = scene.world().createEntity((Level level) -> {
             ItemStack stack = new ItemStack(item, Math.max(1, count));
             if (finalPatch != null) {
                 stack = applyPatchToItemStack(stack, finalPatch);
@@ -196,6 +456,7 @@ public final class GeneratedPonderSupport {
             }
             return entity;
         });
+        registerEntityLink(context, linkId, entityLink);
     }
 
     public static void rotateCameraY(SceneBuilder scene, float degrees, float degreesX, int duration) {
@@ -561,51 +822,63 @@ public final class GeneratedPonderSupport {
 
     public static void clearEntities(SceneBuilder scene, boolean fullScene, String entityId,
                                      BlockPos pos1, BlockPos pos2) {
-        ResourceLocation filter = entityId == null || entityId.isBlank() ? null : ResourceLocation.tryParse(entityId);
+        clearEntities(scene, null, fullScene, entityId, null, pos1, pos2, null, null, null);
+    }
+
+    public static void clearEntities(SceneBuilder scene, Context context, boolean fullScene, String entityId,
+                                     String linkId, BlockPos pos1, BlockPos pos2) {
+        clearEntities(scene, context, fullScene, entityId, linkId, pos1, pos2, null, null, null);
+    }
+
+    public static void clearEntities(SceneBuilder scene, Context context, boolean fullScene, String entityId,
+                                     String linkId, BlockPos pos1, BlockPos pos2,
+                                     String exitAnimation, Integer exitDuration, String direction) {
+        ResourceLocation filter = tryParseEntityFilter(entityId);
+        Selection selection = selectionFromBounds(scene, pos1, pos2);
+        String normalizedLinkId = normalizeEntityLinkId(linkId);
+        if (normalizedLinkId != null) {
+            scheduleEntityClear(scene, linkedEntityTargets(context, normalizedLinkId), selection,
+                filter, exitAnimation, exitDuration, direction);
+            return;
+        }
         if (fullScene) {
-            scene.world().modifyEntities(Entity.class, entity -> {
-                if (entity instanceof ItemEntity) {
-                    return;
-                }
-                if (filter == null || EntityType.getKey(entity.getType()).equals(filter)) {
-                    entity.discard();
-                }
-            });
+            scheduleEntityClear(scene, null, null, filter, exitAnimation, exitDuration, direction);
             return;
         }
-        if (pos1 == null) {
+        if (selection == null) {
             return;
         }
-        BlockPos targetPos2 = pos2 == null ? pos1 : pos2;
-        Selection selection = scene.getScene().getSceneBuildingUtil().select().fromTo(pos1, targetPos2);
-        scene.world().modifyEntitiesInside(Entity.class, selection, entity -> {
-            if (entity instanceof ItemEntity) {
-                return;
-            }
-            if (filter == null || EntityType.getKey(entity.getType()).equals(filter)) {
-                entity.discard();
-            }
-        });
+        scheduleEntityClear(scene, null, selection, filter, exitAnimation, exitDuration, direction);
     }
 
     public static void clearItemEntities(SceneBuilder scene, boolean fullScene, String itemId,
                                          BlockPos pos1, BlockPos pos2) {
-        ResourceLocation filter = itemId == null || itemId.isBlank() ? null : ResourceLocation.tryParse(itemId);
+        clearItemEntities(scene, null, fullScene, itemId, null, pos1, pos2);
+    }
+
+    public static void clearItemEntities(SceneBuilder scene, Context context, boolean fullScene, String itemId,
+                                         String linkId, BlockPos pos1, BlockPos pos2) {
+        ResourceLocation filter = tryParseEntityFilter(itemId);
+        Selection selection = selectionFromBounds(scene, pos1, pos2);
+        String normalizedLinkId = normalizeEntityLinkId(linkId);
+        if (normalizedLinkId != null) {
+            applyToLinkedEntities(scene, linkedEntityTargets(context, normalizedLinkId), selection,
+                entity -> matchesItemEntity(entity, filter), Entity::discard);
+            return;
+        }
         if (fullScene) {
             scene.world().modifyEntities(ItemEntity.class, entity -> {
-                if (filter == null || BuiltInRegistries.ITEM.getKey(entity.getItem().getItem()).equals(filter)) {
+                if (matchesItemEntity(entity, filter)) {
                     entity.discard();
                 }
             });
             return;
         }
-        if (pos1 == null) {
+        if (selection == null) {
             return;
         }
-        BlockPos targetPos2 = pos2 == null ? pos1 : pos2;
-        Selection selection = scene.getScene().getSceneBuildingUtil().select().fromTo(pos1, targetPos2);
         scene.world().modifyEntitiesInside(ItemEntity.class, selection, entity -> {
-            if (filter == null || BuiltInRegistries.ITEM.getKey(entity.getItem().getItem()).equals(filter)) {
+            if (matchesItemEntity(entity, filter)) {
                 entity.discard();
             }
         });
@@ -613,47 +886,86 @@ public final class GeneratedPonderSupport {
 
     public static void modifyEntitiesNbt(SceneBuilder scene, boolean fullScene, String entityId, String nbt,
                                          BlockPos pos1, BlockPos pos2) {
+        modifyEntitiesNbt(scene, null, fullScene, entityId, null, nbt, pos1, pos2, null, null, null);
+    }
+
+    public static void modifyEntitiesNbt(SceneBuilder scene, Context context, boolean fullScene, String entityId,
+                                         String linkId, String nbt, BlockPos pos1, BlockPos pos2,
+                                         Vec3 move, Integer moveDuration, Boolean walkAnimation) {
         CompoundTag patch = parseEntityPatch(nbt);
-        if (patch == null) {
+        boolean hasMove = move != null && move.lengthSqr() > 0;
+        if (patch == null && !hasMove) {
             return;
         }
-        ResourceLocation filter = entityId == null || entityId.isBlank() ? null : ResourceLocation.tryParse(entityId);
+        ResourceLocation filter = tryParseEntityFilter(entityId);
+        Selection selection = selectionFromBounds(scene, pos1, pos2);
+        String normalizedLinkId = normalizeEntityLinkId(linkId);
+        if (normalizedLinkId != null) {
+            List<ElementLink<EntityElement>> links = linkedEntityTargets(context, normalizedLinkId);
+            if (patch != null) {
+                CompoundTag finalPatch = patch;
+                applyToLinkedEntities(scene, links, selection,
+                    entity -> matchesNonItemEntity(entity, filter),
+                    entity -> mergeEntityNbt(entity, finalPatch));
+            }
+            scheduleEntityMove(scene, links, selection, filter, move, moveDuration, walkAnimation);
+            return;
+        }
         if (fullScene) {
-            scene.world().modifyEntities(Entity.class, entity -> {
-                if (entity instanceof ItemEntity) {
-                    return;
-                }
-                if (filter == null || EntityType.getKey(entity.getType()).equals(filter)) {
-                    mergeEntityNbt(entity, patch);
+            if (patch != null) {
+                CompoundTag finalPatch = patch;
+                scene.world().modifyEntities(Entity.class, entity -> {
+                    if (matchesNonItemEntity(entity, filter)) {
+                        mergeEntityNbt(entity, finalPatch);
+                    }
+                });
+            }
+            scheduleEntityMove(scene, null, null, filter, move, moveDuration, walkAnimation);
+            return;
+        }
+        if (selection == null) {
+            return;
+        }
+        if (patch != null) {
+            CompoundTag finalPatch = patch;
+            scene.world().modifyEntitiesInside(Entity.class, selection, entity -> {
+                if (matchesNonItemEntity(entity, filter)) {
+                    mergeEntityNbt(entity, finalPatch);
                 }
             });
-            return;
         }
-        if (pos1 == null) {
-            return;
-        }
-        BlockPos targetPos2 = pos2 == null ? pos1 : pos2;
-        Selection selection = scene.getScene().getSceneBuildingUtil().select().fromTo(pos1, targetPos2);
-        scene.world().modifyEntitiesInside(Entity.class, selection, entity -> {
-            if (entity instanceof ItemEntity) {
-                return;
-            }
-            if (filter == null || EntityType.getKey(entity.getType()).equals(filter)) {
-                mergeEntityNbt(entity, patch);
-            }
-        });
+        scheduleEntityMove(scene, null, selection, filter, move, moveDuration, walkAnimation);
     }
 
     public static void modifyItemEntitiesNbt(SceneBuilder scene, boolean fullScene, String itemId, String nbt,
                                              BlockPos pos1, BlockPos pos2) {
+        modifyItemEntitiesNbt(scene, null, fullScene, itemId, null, nbt, pos1, pos2);
+    }
+
+    public static void modifyItemEntitiesNbt(SceneBuilder scene, Context context, boolean fullScene, String itemId,
+                                             String linkId, String nbt, BlockPos pos1, BlockPos pos2) {
         CompoundTag patch = parseEntityPatch(nbt);
         if (patch == null) {
             return;
         }
-        ResourceLocation filter = itemId == null || itemId.isBlank() ? null : ResourceLocation.tryParse(itemId);
+        ResourceLocation filter = tryParseEntityFilter(itemId);
+        Selection selection = selectionFromBounds(scene, pos1, pos2);
+        String normalizedLinkId = normalizeEntityLinkId(linkId);
+        Consumer<Entity> itemPatchAction = entity -> {
+            ItemEntity itemEntity = (ItemEntity) entity;
+            itemEntity.setItem(applyPatchToItemStack(itemEntity.getItem(), patch));
+            if (isLikelyEntityPatch(patch)) {
+                mergeEntityNbt(itemEntity, patch);
+            }
+        };
+        if (normalizedLinkId != null) {
+            applyToLinkedEntities(scene, linkedEntityTargets(context, normalizedLinkId), selection,
+                entity -> matchesItemEntity(entity, filter), itemPatchAction);
+            return;
+        }
         if (fullScene) {
             scene.world().modifyEntities(ItemEntity.class, entity -> {
-                if (filter == null || BuiltInRegistries.ITEM.getKey(entity.getItem().getItem()).equals(filter)) {
+                if (matchesItemEntity(entity, filter)) {
                     entity.setItem(applyPatchToItemStack(entity.getItem(), patch));
                     if (isLikelyEntityPatch(patch)) {
                         mergeEntityNbt(entity, patch);
@@ -662,19 +974,253 @@ public final class GeneratedPonderSupport {
             });
             return;
         }
-        if (pos1 == null) {
+        if (selection == null) {
             return;
         }
-        BlockPos targetPos2 = pos2 == null ? pos1 : pos2;
-        Selection selection = scene.getScene().getSceneBuildingUtil().select().fromTo(pos1, targetPos2);
         scene.world().modifyEntitiesInside(ItemEntity.class, selection, entity -> {
-            if (filter == null || BuiltInRegistries.ITEM.getKey(entity.getItem().getItem()).equals(filter)) {
+            if (matchesItemEntity(entity, filter)) {
                 entity.setItem(applyPatchToItemStack(entity.getItem(), patch));
                 if (isLikelyEntityPatch(patch)) {
                     mergeEntityNbt(entity, patch);
                 }
             }
         });
+    }
+
+    @Nullable
+    private static ResourceLocation tryParseEntityFilter(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        return ResourceLocation.tryParse(raw);
+    }
+
+    @Nullable
+    private static String normalizeEntityLinkId(String rawLinkId) {
+        if (rawLinkId == null) {
+            return null;
+        }
+        String normalized = rawLinkId.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private static void registerEntityLink(@Nullable Context context, String rawLinkId, ElementLink<EntityElement> link) {
+        if (context == null) {
+            return;
+        }
+        String linkId = normalizeEntityLinkId(rawLinkId);
+        if (linkId == null) {
+            return;
+        }
+        context.entityLinks.computeIfAbsent(linkId, key -> new ArrayList<>()).add(link);
+    }
+
+    private static List<ElementLink<EntityElement>> linkedEntityTargets(@Nullable Context context, String linkId) {
+        if (context == null) {
+            return List.of();
+        }
+        List<ElementLink<EntityElement>> targets = context.entityLinks.get(linkId);
+        return targets == null ? List.of() : List.copyOf(targets);
+    }
+
+    private static void applyToLinkedEntities(SceneBuilder scene, List<ElementLink<EntityElement>> links,
+                                              @Nullable Selection selection,
+                                              Predicate<Entity> filter,
+                                              Consumer<Entity> action) {
+        if (links.isEmpty()) {
+            return;
+        }
+        List<ElementLink<EntityElement>> captured = List.copyOf(links);
+        scene.addInstruction(ponderScene -> {
+            for (ElementLink<EntityElement> link : captured) {
+                EntityElement element = ponderScene.resolve(link);
+                if (element == null) {
+                    continue;
+                }
+                element.ifPresent(entity -> {
+                    if (entity == null || !entity.isAlive()) {
+                        return;
+                    }
+                    if (selection != null && !selection.test(entity.blockPosition())) {
+                        return;
+                    }
+                    if (!filter.test(entity)) {
+                        return;
+                    }
+                    action.accept(entity);
+                });
+            }
+        });
+    }
+
+    private static boolean matchesNonItemEntity(Entity entity, @Nullable ResourceLocation filterLoc) {
+        return !(entity instanceof ItemEntity) && matchesEntityType(entity, filterLoc);
+    }
+
+    private static boolean matchesEntityType(Entity entity, @Nullable ResourceLocation filterLoc) {
+        return filterLoc == null || EntityType.getKey(entity.getType()).equals(filterLoc);
+    }
+
+    private static boolean matchesItemEntity(Entity entity, @Nullable ResourceLocation filterLoc) {
+        if (!(entity instanceof ItemEntity itemEntity)) {
+            return false;
+        }
+        return filterLoc == null || BuiltInRegistries.ITEM.getKey(itemEntity.getItem().getItem()).equals(filterLoc);
+    }
+
+    @Nullable
+    private static Selection selectionFromBounds(SceneBuilder scene, @Nullable BlockPos pos1, @Nullable BlockPos pos2) {
+        if (pos1 == null) {
+            return null;
+        }
+        BlockPos targetPos2 = pos2 == null ? pos1 : pos2;
+        return scene.getScene().getSceneBuildingUtil().select().fromTo(pos1, targetPos2);
+    }
+
+    private static void scheduleEntityMove(SceneBuilder scene,
+                                           @Nullable List<ElementLink<EntityElement>> linkedTargets,
+                                           @Nullable Selection selection,
+                                           @Nullable ResourceLocation filterLoc,
+                                           @Nullable Vec3 offset,
+                                           @Nullable Integer duration,
+                                           @Nullable Boolean walkAnimation) {
+        if (offset == null || offset.lengthSqr() == 0) {
+            return;
+        }
+        int moveDuration = duration == null ? 20 : Math.max(0, duration);
+        if (moveDuration <= 0) {
+            applyInstantEntityMove(scene, linkedTargets, selection, filterLoc, offset);
+            return;
+        }
+        scene.addInstruction(new EntityMoveInstruction(linkedTargets, selection, filterLoc, offset, moveDuration,
+            Boolean.TRUE.equals(walkAnimation)));
+    }
+
+    private static void applyInstantEntityMove(SceneBuilder scene,
+                                               @Nullable List<ElementLink<EntityElement>> linkedTargets,
+                                               @Nullable Selection selection,
+                                               @Nullable ResourceLocation filterLoc,
+                                               Vec3 offset) {
+        if (linkedTargets != null) {
+            applyToLinkedEntities(scene, linkedTargets, selection,
+                entity -> matchesNonItemEntity(entity, filterLoc),
+                entity -> moveEntityInstant(entity, offset));
+            return;
+        }
+        scene.addInstruction(ponderScene -> ponderScene.forEachWorldEntity(Entity.class, entity -> {
+            if (!matchesNonItemEntity(entity, filterLoc)) {
+                return;
+            }
+            if (selection != null && !selection.test(entity.blockPosition())) {
+                return;
+            }
+            moveEntityInstant(entity, offset);
+        }));
+    }
+
+    private static void moveEntityInstant(Entity entity, Vec3 offset) {
+        if (entity == null || !entity.isAlive()) {
+            return;
+        }
+        Vec3 targetPos = entity.position().add(offset);
+        entity.setPos(targetPos.x, targetPos.y, targetPos.z);
+        entity.setDeltaMovement(Vec3.ZERO);
+        entity.setOldPosAndRot();
+        stopWalkAnimation(entity);
+    }
+
+    private static void scheduleEntityClear(SceneBuilder scene,
+                                            @Nullable List<ElementLink<EntityElement>> linkedTargets,
+                                            @Nullable Selection selection,
+                                            @Nullable ResourceLocation filterLoc,
+                                            String exitAnimation,
+                                            Integer exitDuration,
+                                            String direction) {
+        Vec3 exitOffset = entityExitOffset(exitAnimation, direction);
+        int resolvedDuration = exitDuration == null ? 20 : Math.max(0, exitDuration);
+        if (exitOffset == null || resolvedDuration <= 0) {
+            applyInstantEntityClear(scene, linkedTargets, selection, filterLoc);
+            return;
+        }
+        scene.addInstruction(new EntityExitInstruction(linkedTargets, selection, filterLoc, exitOffset, resolvedDuration));
+    }
+
+    private static void applyInstantEntityClear(SceneBuilder scene,
+                                                @Nullable List<ElementLink<EntityElement>> linkedTargets,
+                                                @Nullable Selection selection,
+                                                @Nullable ResourceLocation filterLoc) {
+        if (linkedTargets != null) {
+            applyToLinkedEntities(scene, linkedTargets, selection,
+                entity -> matchesNonItemEntity(entity, filterLoc),
+                Entity::discard);
+            return;
+        }
+        if (selection == null) {
+            scene.world().modifyEntities(Entity.class, entity -> {
+                if (matchesNonItemEntity(entity, filterLoc)) {
+                    entity.discard();
+                }
+            });
+            return;
+        }
+        scene.world().modifyEntitiesInside(Entity.class, selection, entity -> {
+            if (matchesNonItemEntity(entity, filterLoc)) {
+                entity.discard();
+            }
+        });
+    }
+
+    @Nullable
+    private static Vec3 entityEntranceOffset(String entranceAnimationRaw, String directionRaw) {
+        String animation = normalizeEntranceAnimation(entranceAnimationRaw);
+        if (animation == null || "none".equals(animation)) {
+            return null;
+        }
+        Direction direction = "simultaneous".equals(animation)
+            ? parseDirection(directionRaw)
+            : parseDirection(animation);
+        return Vec3.atLowerCornerOf(direction.getNormal()).scale(-0.5d);
+    }
+
+    @Nullable
+    private static Vec3 entityExitOffset(String exitAnimationRaw, String directionRaw) {
+        String animation = normalizeEntranceAnimation(exitAnimationRaw);
+        if (animation == null || "none".equals(animation)) {
+            return null;
+        }
+        Direction direction = "simultaneous".equals(animation)
+            ? parseDirection(directionRaw)
+            : parseDirection(animation);
+        return Vec3.atLowerCornerOf(direction.getNormal()).scale(0.5d);
+    }
+
+    private static float computeWalkAnimationSpeed(Vec3 totalOffset, int durationTicks) {
+        if (durationTicks <= 0) {
+            return 0.0f;
+        }
+        double seconds = durationTicks / 20.0d;
+        double blocksPerSecond = totalOffset.length() / seconds;
+        return (float) Math.min(1.0d, blocksPerSecond / 5.0d);
+    }
+
+    private static void applyWalkAnimation(Entity entity, float speed) {
+        if (!(entity instanceof LivingEntity livingEntity)) {
+            return;
+        }
+        float clampedSpeed = Math.max(0.0f, Math.min(1.0f, speed));
+        livingEntity.walkAnimation.update(clampedSpeed, 0.4f);
+    }
+
+    private static void stopWalkAnimation(Entity entity) {
+        if (!(entity instanceof LivingEntity livingEntity)) {
+            return;
+        }
+        livingEntity.walkAnimation.update(0.0f, 1.0f);
+        if (livingEntity instanceof Mob mob) {
+            mob.setXxa(0.0f);
+            mob.setYya(0.0f);
+            mob.setZza(0.0f);
+        }
     }
 
     private static CompoundTag parseEntityPatch(String nbt) {
