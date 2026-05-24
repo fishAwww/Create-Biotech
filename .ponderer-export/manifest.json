@@ -444,6 +444,38 @@
           "create_biotech.ponder.bio_packager_s_fe8b2.text_1": "生物打包机会自动提取附着库存中的纸箱，并捕捉被动态结构杀死的生物"
         }
       }
+    },
+    "ponderer:power_belt_connector": {
+      "sceneId": "ponderer:power_belt_connector",
+      "sceneKey": "ponderer:power_belt_connector",
+      "className": "com.nobodiiiii.createbiotech.ponder.generated.scenes.GeneratedPowerBeltConnector_f5338733",
+      "status": "COMPLETE",
+      "contentHash": "d3a6b52c6808ab307a6ba6a4652f43982b8f545048b703026c59303f144a09f3",
+      "javaFiles": [
+        "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedPowerBeltConnector_f5338733.java"
+      ],
+      "resourceFiles": [
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/powerbelt.nbt",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/powerbelt1.nbt",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/powerbelt2.nbt",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/powerbelt3.nbt"
+      ],
+      "langEntries": {
+        "en_us": {
+          "create_biotech.ponder.power_belt_connector.header": "Scene 1",
+          "create_biotech.ponder.power_belt_connector.text_1": "动力传送带会在有生物在其上方运动时产生应力",
+          "create_biotech.ponder.power_belt_connector.text_2": "上方生物运动的越快，产生的转速越高，应力越高",
+          "create_biotech.ponder.power_belt_connector.text_3": "多个实体产生的应力会叠加，但是转速不会",
+          "create_biotech.ponder.power_belt_connector.text_4": "使用固定的钓竿，让动物为你工作"
+        },
+        "zh_cn": {
+          "create_biotech.ponder.power_belt_connector.header": "动力传送带",
+          "create_biotech.ponder.power_belt_connector.text_1": "动力传送带会在有生物在其上方运动时产生应力",
+          "create_biotech.ponder.power_belt_connector.text_2": "上方生物运动的越快，产生的转速越高，应力越高",
+          "create_biotech.ponder.power_belt_connector.text_3": "多个实体产生的应力会叠加，但是转速不会",
+          "create_biotech.ponder.power_belt_connector.text_4": "使用固定的钓竿，让动物为你工作"
+        }
+      }
     }
   }
 }

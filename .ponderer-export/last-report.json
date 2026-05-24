@@ -9,18 +9,20 @@
   "ignoredFindings": [],
   "sceneOutcomes": [
     {
-      "sceneId": "ponderer:bio_packager",
-      "sceneKey": "ponderer:bio_packager",
-      "className": "GeneratedBioPackager_bad667d8",
+      "sceneId": "ponderer:power_belt_connector",
+      "sceneKey": "ponderer:power_belt_connector",
+      "className": "GeneratedPowerBeltConnector_f5338733",
       "status": "COMPLETE",
-      "replaced": true,
-      "exportedSegments": 2,
+      "replaced": false,
+      "exportedSegments": 1,
       "blankSegments": 0,
       "omittedSteps": 0,
       "ownedFiles": [
-        "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedBioPackager_bad667d8.java",
-        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/basic.nbt",
-        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/bio_packager_capture.nbt"
+        "src/main/java/com/nobodiiiii/createbiotech/ponder/generated/scenes/GeneratedPowerBeltConnector_f5338733.java",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/powerbelt.nbt",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/powerbelt1.nbt",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/powerbelt2.nbt",
+        "src/main/resources/assets/create_biotech/ponder/generated/ponderer/powerbelt3.nbt"
       ],
       "messages": []
     }

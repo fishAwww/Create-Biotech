@@ -249,6 +249,11 @@
   "create_biotech.ponder.bio_packager_scene_1.header": "Scene 1",
   "create_biotech.ponder.bio_packager_scene_1.text_1": "接入红石信号...",
   "create_biotech.ponder.bio_packager_scene_1.text_2": "生物打包机会从其附着的库存中提取装有生物的纸箱并释放到其上方",
+  "create_biotech.ponder.power_belt_connector.header": "Scene 1",
+  "create_biotech.ponder.power_belt_connector.text_1": "动力传送带会在有生物在其上方运动时产生应力",
+  "create_biotech.ponder.power_belt_connector.text_2": "上方生物运动的越快，产生的转速越高，应力越高",
+  "create_biotech.ponder.power_belt_connector.text_3": "多个实体产生的应力会叠加，但是转速不会",
+  "create_biotech.ponder.power_belt_connector.text_4": "使用固定的钓竿，让动物为你工作",
   "create_biotech.ponder.tag.ponderer_exported": "The Ponderer...",
   "create_biotech.ponder.tag.ponderer_exported.description": "This mod\u0027s Ponder scenes were created and exported with The Ponderer. Learn more: https://modrinth.com/mod/the-ponderer"
 }
