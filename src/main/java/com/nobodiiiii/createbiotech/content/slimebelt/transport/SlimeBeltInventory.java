@@ -76,7 +76,7 @@ public class SlimeBeltInventory {
 	 *  into a vertical belt. Aligns item visually with the upstream belt's
 	 *  surface height instead of the segment center. If this push overshoots
 	 *  the track exit, the item is buffered on the exit connector instead. */
-	private static final float INSERT_HV_MOTION_OFFSET = .5f;
+	private static final float INSERT_HV_MOTION_OFFSET = .625f;
 
 	TransportedItemStack lazyClientItem;
 
@@ -694,9 +694,11 @@ public class SlimeBeltInventory {
 		// same position so a free entry slot isn't falsely rejected when the next
 		// segment is full.
 		Direction mf = belt.getMovementFacing();
+		boolean isVerticalIntoHorizontalEntry = isVerticalAxisChainIntoHorizontal(segment, track, side);
 		boolean isChainInsert = side != null && (
 			(side == mf && track == Track.FRONT)
-			|| (side == mf.getOpposite() && track == Track.BACK));
+			|| (side == mf.getOpposite() && track == Track.BACK))
+			|| isVerticalIntoHorizontalEntry;
 		float insertPos = isChainInsert
 			? getLoopPositionForTrackProgress(track, 0f)
 			: getInsertionPositionForTrack(segment, track);
@@ -734,6 +736,7 @@ public class SlimeBeltInventory {
 
 		boolean isFrontChain = side != null && side == mf && track == Track.FRONT;
 		boolean isBackChain = side != null && side == mf.getOpposite() && track == Track.BACK;
+		boolean isVerticalIntoHorizontalEntry = isVerticalAxisChainIntoHorizontal(segment, track, side);
 		boolean isHvIntoVertical = isHorizontalAxisChainIntoVertical(transported, side);
 
 		float trackProgress;
@@ -754,6 +757,10 @@ public class SlimeBeltInventory {
 			// the blocking check in canInsertAtFromSide consistent with reality: the
 			// next-segment item is one full unit ahead, not 0.5+1/16 ahead, so a single
 			// empty entry slot is accepted even if the segment past it is occupied.
+			trackProgress = 0f;
+		} else if (isVerticalIntoHorizontalEntry) {
+			// VERTICAL → HORIZONTAL special handoff should also land on the connected
+			// track's entry point instead of the segment-center general insertion spot.
 			trackProgress = 0f;
 		} else {
 			trackProgress = computeGeneralTrackProgress(segment, track);
@@ -825,6 +832,15 @@ public class SlimeBeltInventory {
 		Direction mf = belt.getMovementFacing();
 		BlockPos segmentPos = SlimeBeltHelper.getPositionForOffset(belt, segment);
 		return SlimeBeltHelper.getSegmentBE(belt.getLevel(), segmentPos.relative(mf.getOpposite())) != null;
+	}
+
+	private boolean isVerticalAxisChainIntoHorizontal(int segment, Track track, Direction side) {
+		if (side == null || !side.getAxis().isVertical())
+			return false;
+		if (belt.getBlockState().getValue(SlimeBeltBlock.SLOPE) != BeltSlope.HORIZONTAL)
+			return false;
+		Track entryTrack = SlimeBeltHelper.getEndpointEntryTrack(belt, segment);
+		return entryTrack == track;
 	}
 
 	private boolean isHorizontalAxisChainIntoVertical(TransportedItemStack transported, Direction side) {

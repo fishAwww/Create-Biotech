@@ -58,7 +58,7 @@
   "create_biotech.jei.experience_pump.note.nuggets": "从容器中抽取机械动力经验粒，并将每个经验粒转化为 3 XP",
   "create_biotech.jei.experience_pump.note.open_output": "开放或带分散网的输出端会发射原版经验球",
   "create_biotech.recipe.processing.random_amount": "随机数量：%s-%s",
-  "block.create_biotech.fixed_carrot_fishing_rod": "固定的钓杆",
+  "block.create_biotech.fixed_carrot_fishing_rod": "固定的钓竿",
   "block.create_biotech.fixed_carrot_fishing_rod.tooltip.summary": "把你的_钓竿_固定在墙上！",
   "block.create_biotech.fixed_carrot_fishing_rod.tooltip.condition1": "右键时",
   "block.create_biotech.fixed_carrot_fishing_rod.tooltip.behaviour1": "挂上_手持物品_作为诱饵，让_钓竿_持续吸引会被它引诱的_动物_。",
