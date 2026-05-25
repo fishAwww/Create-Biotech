@@ -2,7 +2,10 @@ package com.nobodiiiii.createbiotech.content.evokerenchantingchamber;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
 import com.nobodiiiii.createbiotech.content.cardboardbox.CapturedEntityBoxHelper;
+import com.nobodiiiii.createbiotech.foundation.advancement.CBAdvancements;
+import com.nobodiiiii.createbiotech.registry.CBBlocks;
 
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
@@ -33,5 +36,18 @@ public class EvokerEnchantingChamberConversionHandler {
 
 		event.setCanceled(true);
 		event.setCancellationResult(InteractionResult.FAIL);
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
+	public static void onEnchantingTableConverted(PlayerInteractEvent.RightClickBlock event) {
+		if (event.getLevel().isClientSide)
+			return;
+		if (!(event.getEntity() instanceof ServerPlayer player))
+			return;
+		if (!event.isCanceled() || event.getCancellationResult() != InteractionResult.SUCCESS)
+			return;
+		if (!event.getLevel().getBlockState(event.getPos()).is(CBBlocks.EVOKER_ENCHANTING_CHAMBER.get()))
+			return;
+		CBAdvancements.award(player, CBAdvancements.EVOKER_ENCHANTING_CHAMBER);
 	}
 }

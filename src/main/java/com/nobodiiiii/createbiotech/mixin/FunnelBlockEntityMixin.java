@@ -97,7 +97,7 @@ public abstract class FunnelBlockEntityMixin {
 			return;
 
 		BeltSurface surface = BeltSurfaceResolver.resolve(funnel.getLevel(), funnel.getBlockPos());
-		if (surface == null)
+		if (surface == null || surface.host() == null)
 			return;
 
 		Direction facing = surface.worldize(blockState.getValue(BeltFunnelBlock.HORIZONTAL_FACING));
@@ -126,7 +126,8 @@ public abstract class FunnelBlockEntityMixin {
 		if (shape == Shape.PUSHING)
 			return;
 
-		if (BeltSurfaceResolver.resolve(funnel.getLevel(), funnel.getBlockPos()) != null)
+		BeltSurface surface = BeltSurfaceResolver.resolve(funnel.getLevel(), funnel.getBlockPos());
+		if (surface != null && surface.host() != null)
 			cir.setReturnValue(true);
 	}
 
@@ -182,7 +183,7 @@ public abstract class FunnelBlockEntityMixin {
 			return;
 
 		BeltSurface surface = BeltSurfaceResolver.resolve(funnel.getLevel(), funnel.getBlockPos());
-		if (surface == null) {
+		if (surface == null || surface.host() == null) {
 			BlockState blockState = funnel.getBlockState();
 			DirectBeltInputBehaviour inputBehaviour =
 				BlockEntityBehaviour.get(funnel.getLevel(), funnel.getBlockPos().below(), DirectBeltInputBehaviour.TYPE);

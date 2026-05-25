@@ -4,10 +4,12 @@ import java.util.Comparator;
 import java.util.List;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
+import com.nobodiiiii.createbiotech.foundation.advancement.CBAdvancements;
 import com.nobodiiiii.createbiotech.registry.CBItems;
 import com.simibubi.create.AllItems;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -73,6 +75,8 @@ public class SlimeBeltAcquisitionHandler {
 
 		ItemStack drop = new ItemStack(magma ? CBItems.MAGMA_BELT_CONNECTOR.get() : CBItems.SLIME_BELT_CONNECTOR.get());
 		event.getDrops().add(new ItemEntity(slime.level(), slime.getX(), slime.getY(), slime.getZ(), drop));
+		if (event.getSource().getEntity() instanceof ServerPlayer player)
+			CBAdvancements.award(player, magma ? CBAdvancements.MAGMA_BELT : CBAdvancements.SLIME_BELT);
 	}
 
 	private static boolean hasBelt(Slime slime, String tag) {

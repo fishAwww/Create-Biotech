@@ -1,8 +1,13 @@
 package com.nobodiiiii.createbiotech.content.ghasthotairballoon;
 
 import java.util.List;
+import java.util.UUID;
+
+import javax.annotation.Nullable;
 
 import com.nobodiiiii.createbiotech.content.cardboardbox.CapturedEntityBoxHelper;
+import com.nobodiiiii.createbiotech.foundation.advancement.CBAdvancements;
+import com.nobodiiiii.createbiotech.foundation.advancement.PlacedByPlayerAdvancementTracker;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
 import com.simibubi.create.api.contraption.BlockMovementChecks;
 import com.simibubi.create.content.contraptions.AssemblyException;
@@ -17,6 +22,7 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -36,6 +42,8 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 	private boolean retracting;
 	private boolean assemblyConsumed;
 	private boolean queuedStartExtend;
+	@Nullable
+	private UUID advancementOwner;
 
 	public float offset;
 	public float prevOffset;
@@ -175,6 +183,7 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 		assemblyConsumed = true;
 		offset = 0;
 		prevOffset = 0;
+		PlacedByPlayerAdvancementTracker.awardPlacedBy(level, advancementOwner, CBAdvancements.GHAST_HOT_AIR_BALLOON);
 		sendUpdate();
 	}
 
@@ -289,6 +298,11 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 		return Mth.lerp(partialTicks, prevOffset, offset);
 	}
 
+	public void setAdvancementOwner(@Nullable LivingEntity placer) {
+		advancementOwner = PlacedByPlayerAdvancementTracker.ownerFrom(placer);
+		setChanged();
+	}
+
 	@Override
 	public CompoundTag getUpdateTag() {
 		CompoundTag tag = new CompoundTag();
@@ -322,6 +336,7 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 		tag.putBoolean("Retracting", retracting);
 		tag.putBoolean("AssemblyConsumed", assemblyConsumed);
 		tag.putFloat("Offset", offset);
+		PlacedByPlayerAdvancementTracker.writeOwner(tag, advancementOwner);
 	}
 
 	@Override
@@ -334,6 +349,7 @@ public class GhastHotAirBalloonAssemblyStationBlockEntity extends BlockEntity {
 		retracting = tag.getBoolean("Retracting");
 		assemblyConsumed = tag.getBoolean("AssemblyConsumed");
 		offset = tag.getFloat("Offset");
+		advancementOwner = PlacedByPlayerAdvancementTracker.readOwner(tag);
 		if (!wasExtending && !wasRetracting)
 			prevOffset = offset;
 	}

@@ -256,7 +256,7 @@ public class BasinEntityProcessing {
 		if (shape == Shape.PUSHING)
 			return false;
 
-		if (surface != null)
+		if (surface != null && surface.host() != null)
 			return surface.movementFacing() != worldFacing;
 
 		BeltBlockEntity belt = BeltHelper.getSegmentBE(level, funnelPos.below());

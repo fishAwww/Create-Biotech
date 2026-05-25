@@ -3,6 +3,7 @@ package com.nobodiiiii.createbiotech.content.powerbelt;
 import java.util.List;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
+import com.nobodiiiii.createbiotech.foundation.advancement.CBAdvancements;
 import com.nobodiiiii.createbiotech.registry.CBBlocks;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
@@ -13,6 +14,7 @@ import com.simibubi.create.content.kinetics.belt.BeltSlope;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
@@ -103,6 +105,8 @@ public class PowerBeltConversionHandler {
 			player == null ? SoundSource.BLOCKS : SoundSource.PLAYERS, 0.5F, 1F);
 		if (!player.isCreative())
 			heldItem.shrink(1);
+		if (player instanceof ServerPlayer serverPlayer)
+			CBAdvancements.award(serverPlayer, CBAdvancements.POWER_BELT);
 		return true;
 	}
 

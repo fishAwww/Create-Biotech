@@ -9,6 +9,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.monster.Ghast;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -86,6 +88,16 @@ public class GhastHotAirBalloonAssemblyStationBlock extends BaseEntityBlock {
 	public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean isMoving) {
 		super.onPlace(state, level, pos, oldState, isMoving);
 		updatePoweredState(level, pos);
+	}
+
+	@Override
+	public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
+		super.setPlacedBy(level, pos, state, placer, stack);
+		if (level.isClientSide)
+			return;
+		BlockEntity blockEntity = level.getBlockEntity(pos);
+		if (blockEntity instanceof GhastHotAirBalloonAssemblyStationBlockEntity station)
+			station.setAdvancementOwner(placer);
 	}
 
 	@Override

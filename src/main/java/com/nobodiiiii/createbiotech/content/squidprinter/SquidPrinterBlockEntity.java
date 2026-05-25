@@ -6,7 +6,12 @@ import static com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessing
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
+import javax.annotation.Nullable;
+
+import com.nobodiiiii.createbiotech.foundation.advancement.CBAdvancements;
+import com.nobodiiiii.createbiotech.foundation.advancement.PlacedByPlayerAdvancementTracker;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour;
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour.ProcessingResult;
@@ -24,6 +29,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -57,6 +63,8 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 	private boolean running;
 	private ItemStack processingTemplate;
 	private int idleTicksWhileRunning;
+	@Nullable
+	private UUID advancementOwner;
 
 	public SquidPrinterBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -150,6 +158,7 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 			}
 			outList.add(result);
 			handler.handleProcessingOnItem(transported, TransportedResult.convertToAndLeaveHeld(outList, held));
+			PlacedByPlayerAdvancementTracker.awardPlacedBy(level, advancementOwner, CBAdvancements.SQUID_PRINTER);
 
 			sendSplash = true;
 			clearProcessingState();
@@ -243,6 +252,11 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 		return running;
 	}
 
+	public void setAdvancementOwner(@Nullable LivingEntity placer) {
+		advancementOwner = PlacedByPlayerAdvancementTracker.ownerFrom(placer);
+		setChanged();
+	}
+
 	@FunctionalInterface
 	public interface SquidInkParticleEmitter {
 		void emit(double x, double y, double z, double dx, double dy, double dz);
@@ -294,6 +308,7 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 		compound.putBoolean("Running", running);
 		if (!processingTemplate.isEmpty())
 			compound.put("ProcessingTemplate", processingTemplate.save(new CompoundTag()));
+		PlacedByPlayerAdvancementTracker.writeOwner(compound, advancementOwner);
 		if (sendSplash && clientPacket) {
 			compound.putBoolean("Splash", true);
 			sendSplash = false;
@@ -308,6 +323,7 @@ public class SquidPrinterBlockEntity extends SmartBlockEntity implements IHaveGo
 		processingTemplate =
 			compound.contains("ProcessingTemplate") ? ItemStack.of(compound.getCompound("ProcessingTemplate"))
 				: ItemStack.EMPTY;
+		advancementOwner = PlacedByPlayerAdvancementTracker.readOwner(compound);
 	}
 
 	@Override

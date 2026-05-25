@@ -1,9 +1,12 @@
 package com.nobodiiiii.createbiotech.content.experience;
 
+import java.util.UUID;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
+import com.nobodiiiii.createbiotech.foundation.advancement.CBAdvancements;
+import com.nobodiiiii.createbiotech.foundation.advancement.PlacedByPlayerAdvancementTracker;
 import com.nobodiiiii.createbiotech.content.evokerenchantingchamber.EvokerEnchantingChamberBlock;
 import com.nobodiiiii.createbiotech.content.evokerenchantingchamber.EvokerEnchantingChamberBlockEntity;
 import com.nobodiiiii.createbiotech.registry.CBBlockEntityTypes;
@@ -15,6 +18,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -50,6 +54,8 @@ public class ExperiencePumpBlockEntity extends KineticBlockEntity {
 	private double fractionalXp;
 	private int pendingEmissionXp;
 	private int pendingEmissionTicks;
+	@Nullable
+	private UUID advancementOwner;
 
 	public ExperiencePumpBlockEntity(BlockPos pos, BlockState state) {
 		super(CBBlockEntityTypes.EXPERIENCE_PUMP.get(), pos, state);
@@ -343,12 +349,27 @@ public class ExperiencePumpBlockEntity extends KineticBlockEntity {
 			center.y + halfExtent, center.z + halfExtent);
 	}
 
+	public void setAdvancementOwner(@Nullable LivingEntity placer) {
+		advancementOwner = PlacedByPlayerAdvancementTracker.ownerFrom(placer);
+		setChanged();
+	}
+
+	@Override
+	public void onSpeedChanged(float previousSpeed) {
+		super.onSpeedChanged(previousSpeed);
+		if (Math.abs(previousSpeed) == Math.abs(getSpeed()))
+			return;
+		if (getSpeed() != 0)
+			PlacedByPlayerAdvancementTracker.awardPlacedBy(level, advancementOwner, CBAdvancements.EXPERIENCE_PUMP);
+	}
+
 	@Override
 	protected void write(CompoundTag compound, boolean clientPacket) {
 		super.write(compound, clientPacket);
 		compound.putDouble("FractionalXp", fractionalXp);
 		compound.putInt("PendingEmissionXp", pendingEmissionXp);
 		compound.putInt("PendingEmissionTicks", pendingEmissionTicks);
+		PlacedByPlayerAdvancementTracker.writeOwner(compound, advancementOwner);
 	}
 
 	@Override
@@ -357,6 +378,7 @@ public class ExperiencePumpBlockEntity extends KineticBlockEntity {
 		fractionalXp = compound.getDouble("FractionalXp");
 		pendingEmissionXp = compound.getInt("PendingEmissionXp");
 		pendingEmissionTicks = compound.getInt("PendingEmissionTicks");
+		advancementOwner = PlacedByPlayerAdvancementTracker.readOwner(compound);
 	}
 
 	private record OutputTarget(boolean blocked, int capacity, @Nullable ExperienceSink sink,
