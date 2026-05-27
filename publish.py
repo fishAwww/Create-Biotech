@@ -32,7 +32,7 @@ CHANGELOG_FILE = PROJECT_ROOT / "CHANGELOG.md"
 ENV_FILE = PROJECT_ROOT / ".env"
 
 MODRINTH_API = "https://api.modrinth.com/v2"
-MODRINTH_PROJECT_ID = ""  # TODO: 填入 Modrinth 项目 ID（项目页面 URL 末尾的 slug 或在 Settings 中查看）
+MODRINTH_PROJECT_ID = "UW0IjVT0"
 
 CURSEFORGE_UPLOAD_API = "https://minecraft.curseforge.com/api"
 CURSEFORGE_PROJECT_ID = 0  # TODO: 填入 CurseForge 项目 ID（项目页面右侧 About Project 区可见）

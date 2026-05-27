@@ -26,15 +26,15 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.DyeColor;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.RegisterEvent;
 
 @Mod(CreateBiotech.MOD_ID)
 public class CreateBiotech {
 	public static final String MOD_ID = "create_biotech";
 
 	public CreateBiotech() {
-		CBContraptionTypes.init();
 		IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 		CBBlocks.register(modEventBus);
 		CBItems.register(modEventBus);
@@ -46,6 +46,7 @@ public class CreateBiotech {
 		CBParticleTypes.register(modEventBus);
 		CBRecipeTypes.register(modEventBus);
 		modEventBus.addListener(CreateBiotech::onCommonSetup);
+		modEventBus.addListener(CreateBiotech::onRegister);
 		CBPackets.register();
 		FixedCarrotFishingRodGoalHandler.register();
 	}
@@ -63,6 +64,10 @@ public class CreateBiotech {
 			MovingInteractionBehaviour.REGISTRY.register(AllBlocks.ROPE.get(), ghastBalloonRopeShears);
 			MovingInteractionBehaviour.REGISTRY.register(AllBlocks.PULLEY_MAGNET.get(), ghastBalloonRopeShears);
 		});
+	}
+
+	private static void onRegister(RegisterEvent event) {
+		CBContraptionTypes.init();
 	}
 
 	public static ResourceLocation asResource(String path) {
