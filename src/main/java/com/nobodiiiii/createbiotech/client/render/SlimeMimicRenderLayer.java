@@ -29,6 +29,8 @@ public class SlimeMimicRenderLayer<T extends LivingEntity, M extends EntityModel
 	private static final float SLIME_MODEL_WIDTH = 8.0f;
 	private static final float SLIME_MODEL_CENTER_Y = 20.0f / 16.0f;
 	private static final float OUTER_CUBE_INFLATE_PIXELS = 0.1f;
+	private static final float FLAT_CUBE_THRESHOLD_PIXELS = 0.05f;
+	private static final float FLAT_CUBE_FILTER_ALPHA = 0.55f;
 	private static final float INNER_RED = 1.0f;
 	private static final float INNER_GREEN = 1.0f;
 	private static final float INNER_BLUE = 1.0f;
@@ -80,12 +82,12 @@ public class SlimeMimicRenderLayer<T extends LivingEntity, M extends EntityModel
 		livingRenderer.addLayer((RenderLayer) new SlimeMimicRenderLayer<>(livingRenderer));
 	}
 
-	public static void beginBodyPartReplacement(MultiBufferSource buffer) {
-		pushContext(new RenderContext(RenderMode.SLIMEIFY_MODEL_PARTS, buffer));
+	public static void beginBodyPartReplacement(MultiBufferSource buffer, LivingEntity entity) {
+		pushContext(new RenderContext(RenderMode.SLIMEIFY_MODEL_PARTS, buffer, lookupTextureLocation(entity)));
 	}
 
 	public static void beginFallbackOverlay(MultiBufferSource buffer) {
-		pushContext(new RenderContext(RenderMode.SKIP_MODEL_PARTS, buffer));
+		pushContext(new RenderContext(RenderMode.SKIP_MODEL_PARTS, buffer, null));
 	}
 
 	public static void endPartInterception() {
@@ -107,11 +109,11 @@ public class SlimeMimicRenderLayer<T extends LivingEntity, M extends EntityModel
 		if (context.mode == RenderMode.SKIP_MODEL_PARTS)
 			return true;
 
-		renderPartRecursive(part, poseStack, context.buffer, packedLight, overlay);
+		renderPartRecursive(part, poseStack, context, packedLight, overlay);
 		return true;
 	}
 
-	private static void renderPartRecursive(ModelPart part, PoseStack poseStack, MultiBufferSource buffer,
+	private static void renderPartRecursive(ModelPart part, PoseStack poseStack, RenderContext context,
 		int packedLight, int overlay) {
 		if (!part.visible)
 			return;
@@ -122,29 +124,38 @@ public class SlimeMimicRenderLayer<T extends LivingEntity, M extends EntityModel
 		ModelPartAccessor accessor = (ModelPartAccessor) (Object) part;
 		if (!part.skipDraw) {
 			for (ModelPart.Cube cube : accessor.createBiotech$getCubes())
-				renderCube(cube, poseStack, buffer, packedLight, overlay);
+				renderCube(cube, poseStack, context, packedLight, overlay);
 		}
 
 		for (Map.Entry<String, ModelPart> child : accessor.createBiotech$getChildren().entrySet())
-			renderPartRecursive(child.getValue(), poseStack, buffer, packedLight, overlay);
+			renderPartRecursive(child.getValue(), poseStack, context, packedLight, overlay);
 
 		poseStack.popPose();
 	}
 
-	private static void renderCube(ModelPart.Cube cube, PoseStack poseStack, MultiBufferSource buffer, int packedLight,
+	private static void renderCube(ModelPart.Cube cube, PoseStack poseStack, RenderContext context, int packedLight,
 		int overlay) {
 		float width = cube.maxX - cube.minX;
 		float height = cube.maxY - cube.minY;
 		float depth = cube.maxZ - cube.minZ;
-		if (width <= 0 || height <= 0 || depth <= 0)
+		if (width < 0 || height < 0 || depth < 0)
 			return;
+
+		boolean flatCube = isFlatCube(width, height, depth);
 
 		float centerX = (cube.minX + cube.maxX) * 0.5f / 16.0f;
 		float centerY = (cube.minY + cube.maxY) * 0.5f / 16.0f;
 		float centerZ = (cube.minZ + cube.maxZ) * 0.5f / 16.0f;
 
-		VertexConsumer innerConsumer = buffer.getBuffer(RenderType.entityCutoutNoCull(SLIME_TEXTURE));
-		VertexConsumer outerConsumer = buffer.getBuffer(RenderType.entityTranslucent(SLIME_TEXTURE));
+		if (flatCube) {
+			renderFlatCubeFilter(cube, poseStack, context, packedLight, overlay);
+			return;
+		}
+
+		VertexConsumer innerConsumer = context.buffer()
+			.getBuffer(RenderType.entityCutoutNoCull(SLIME_TEXTURE));
+		VertexConsumer outerConsumer = context.buffer()
+			.getBuffer(RenderType.entityTranslucent(SLIME_TEXTURE));
 
 		float outerWidth = width + 2.0f * OUTER_CUBE_INFLATE_PIXELS;
 		float outerHeight = height + 2.0f * OUTER_CUBE_INFLATE_PIXELS;
@@ -168,6 +179,29 @@ public class SlimeMimicRenderLayer<T extends LivingEntity, M extends EntityModel
 				OUTER_ALPHA);
 			poseStack.popPose();
 		});
+	}
+
+	private static void renderFlatCubeFilter(ModelPart.Cube cube, PoseStack poseStack, RenderContext context,
+		int packedLight, int overlay) {
+		ResourceLocation texture = context.texture();
+		if (texture == null)
+			return;
+
+		VertexConsumer baseConsumer = context.buffer()
+			.getBuffer(RenderType.entityCutoutNoCull(texture));
+		VertexConsumer filterConsumer = context.buffer()
+			.getBuffer(RenderType.entityTranslucent(texture));
+
+		runWithoutPartInterception(() -> {
+			cube.compile(poseStack.last(), baseConsumer, packedLight, overlay, 1.0f, 1.0f, 1.0f, 1.0f);
+			cube.compile(poseStack.last(), filterConsumer, packedLight, overlay, OVERLAY_RED, OVERLAY_GREEN,
+				OVERLAY_BLUE, FLAT_CUBE_FILTER_ALPHA);
+		});
+	}
+
+	private static boolean isFlatCube(float width, float height, float depth) {
+		return width <= FLAT_CUBE_THRESHOLD_PIXELS || height <= FLAT_CUBE_THRESHOLD_PIXELS
+			|| depth <= FLAT_CUBE_THRESHOLD_PIXELS;
 	}
 
 	private static void renderFallbackOverlay(EntityModel<?> model, LivingEntity entity, PoseStack poseStack,
@@ -237,6 +271,6 @@ public class SlimeMimicRenderLayer<T extends LivingEntity, M extends EntityModel
 		SKIP_MODEL_PARTS
 	}
 
-	private record RenderContext(RenderMode mode, MultiBufferSource buffer) {
+	private record RenderContext(RenderMode mode, MultiBufferSource buffer, ResourceLocation texture) {
 	}
 }
