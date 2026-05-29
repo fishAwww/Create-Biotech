@@ -53,6 +53,7 @@ public class PetriDishBlockEntity extends SmartBlockEntity implements IHaveGoggl
 	public static final int FLUID_PER_HEALTH = 250;
 	public static final int SCAN_RADIUS = 2;
 	public static final int TANK_CAPACITY = 51200;
+	public static final int GROWTH_ANIMATION_DURATION = 8;
 
 	private static final String INVENTORY_TAG = "Inventory";
 	private static final String TANK_TAG = "Tank";
@@ -103,6 +104,14 @@ public class PetriDishBlockEntity extends SmartBlockEntity implements IHaveGoggl
 	private int scanCooldown;
 	@Nullable
 	private UUID advancementOwner;
+	private boolean clientAnimationInitialized;
+	private boolean clientGrowthAnimating;
+	private int clientSettledStage;
+	private int clientGrowthFromStage;
+	private int clientGrowthToStage;
+	private int clientQueuedGrowthSteps;
+	private int clientGrowthAnimationTick;
+	private int clientPreviousGrowthAnimationTick;
 
 	public PetriDishBlockEntity(BlockPos pos, BlockState state) {
 		super(CBBlockEntityTypes.PETRI_DISH.get(), pos, state);
@@ -115,8 +124,13 @@ public class PetriDishBlockEntity extends SmartBlockEntity implements IHaveGoggl
 	public void tick() {
 		super.tick();
 
-		if (level == null || level.isClientSide)
+		if (level == null)
 			return;
+
+		if (level.isClientSide) {
+			tickClientAnimation();
+			return;
+		}
 
 		if (scanCooldown > 0)
 			scanCooldown--;
@@ -127,6 +141,64 @@ public class PetriDishBlockEntity extends SmartBlockEntity implements IHaveGoggl
 		}
 
 		tryCompleteSpawn();
+	}
+
+	private void tickClientAnimation() {
+		int actualStage = getSlimeGrowthStage();
+
+		if (!clientAnimationInitialized) {
+			snapClientAnimation(actualStage);
+			return;
+		}
+
+		if (actualStage <= 0) {
+			snapClientAnimation(0);
+			return;
+		}
+
+		int representedStage = clientGrowthAnimating ? clientGrowthToStage + clientQueuedGrowthSteps : clientSettledStage;
+		if (actualStage < clientSettledStage || (clientGrowthAnimating && actualStage < clientGrowthToStage)) {
+			snapClientAnimation(actualStage);
+			return;
+		}
+
+		if (actualStage > representedStage)
+			clientQueuedGrowthSteps += actualStage - representedStage;
+
+		clientPreviousGrowthAnimationTick = clientGrowthAnimationTick;
+
+		if (clientGrowthAnimating) {
+			clientGrowthAnimationTick++;
+			if (clientGrowthAnimationTick >= GROWTH_ANIMATION_DURATION) {
+				clientSettledStage = clientGrowthToStage;
+				clientGrowthAnimating = false;
+				clientGrowthAnimationTick = 0;
+				clientPreviousGrowthAnimationTick = 0;
+			}
+		}
+
+		if (!clientGrowthAnimating && clientQueuedGrowthSteps > 0 && clientSettledStage < actualStage)
+			startNextClientGrowthAnimation();
+	}
+
+	private void snapClientAnimation(int stage) {
+		clientAnimationInitialized = true;
+		clientGrowthAnimating = false;
+		clientSettledStage = stage;
+		clientGrowthFromStage = stage;
+		clientGrowthToStage = stage;
+		clientQueuedGrowthSteps = 0;
+		clientGrowthAnimationTick = 0;
+		clientPreviousGrowthAnimationTick = 0;
+	}
+
+	private void startNextClientGrowthAnimation() {
+		clientGrowthAnimating = true;
+		clientGrowthFromStage = clientSettledStage;
+		clientGrowthToStage = Math.min(4, clientSettledStage + 1);
+		clientQueuedGrowthSteps = Math.max(0, clientQueuedGrowthSteps - 1);
+		clientGrowthAnimationTick = 0;
+		clientPreviousGrowthAnimationTick = 0;
 	}
 
 	public InteractionResult use(Player player, InteractionHand hand) {
@@ -214,6 +286,31 @@ public class PetriDishBlockEntity extends SmartBlockEntity implements IHaveGoggl
 		if (progress < 0.75f)
 			return 3;
 		return 4;
+	}
+
+	public int getRenderedSlimeStage() {
+		if (level == null || !level.isClientSide || !clientAnimationInitialized)
+			return getSlimeGrowthStage();
+		return clientGrowthAnimating ? clientGrowthToStage : clientSettledStage;
+	}
+
+	public boolean isGrowthAnimating() {
+		return level != null && level.isClientSide && clientAnimationInitialized && clientGrowthAnimating;
+	}
+
+	public int getGrowthAnimationFromStage() {
+		return level != null && level.isClientSide && clientAnimationInitialized ? clientGrowthFromStage : getSlimeGrowthStage();
+	}
+
+	public int getGrowthAnimationToStage() {
+		return level != null && level.isClientSide && clientAnimationInitialized ? clientGrowthToStage : getSlimeGrowthStage();
+	}
+
+	public float getGrowthAnimationProgress(float partialTicks) {
+		if (!isGrowthAnimating())
+			return 1.0f;
+		float tick = Mth.lerp(partialTicks, clientPreviousGrowthAnimationTick, clientGrowthAnimationTick);
+		return Mth.clamp(tick / GROWTH_ANIMATION_DURATION, 0.0f, 1.0f);
 	}
 
 	public boolean canAcceptFluidNow() {

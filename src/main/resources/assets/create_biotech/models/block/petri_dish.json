@@ -4,7 +4,8 @@
   "textures": {
     "particle": "create_biotech:block/petri_dish_brass",
     "brass": "create_biotech:block/petri_dish_brass",
-    "glass": "create_biotech:block/petri_dish_glass"
+    "glass_top": "create_biotech:block/petri_dish_glass_top",
+    "glass_side": "create_biotech:block/petri_dish_glass_side"
   },
   "elements": [
     {
@@ -23,11 +24,11 @@
       "from": [0, 4, 0],
       "to": [16, 16, 16],
       "faces": {
-        "up": { "texture": "#glass" },
-        "north": { "texture": "#glass" },
-        "south": { "texture": "#glass" },
-        "west": { "texture": "#glass" },
-        "east": { "texture": "#glass" }
+        "up": { "texture": "#glass_top" },
+        "north": { "texture": "#glass_side" },
+        "south": { "texture": "#glass_side" },
+        "west": { "texture": "#glass_side" },
+        "east": { "texture": "#glass_side" }
       }
     }
   ]

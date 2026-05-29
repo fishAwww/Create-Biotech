@@ -2,7 +2,7 @@
 
 [English](INTRODUCTION.md) · [中文](INTRODUCTION.zh-CN.md) · [README](../README.zh-CN.md) · [English README](../README.md)
 
-> 一个把生物接进工厂里的 Create 附属模组。
+> 一个把活体生物接进工厂里的机械动力附属模组。
 
 机械动力：生物科技是一个给机械动力增加“生物零件”的附属模组，它将生物直接接进机械动力原有的应力、物流、加工、动态结构等系统中。
 
