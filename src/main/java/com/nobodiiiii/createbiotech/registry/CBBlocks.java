@@ -22,6 +22,7 @@ import com.nobodiiiii.createbiotech.content.fixedcarrotfishingrod.FixedCarrotFis
 import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHotAirBalloonAssemblyStationBlock;
 import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastHelmBlock;
 import com.nobodiiiii.createbiotech.content.magmabelt.MagmaBeltBlock;
+import com.nobodiiiii.createbiotech.content.petridish.PetriDishBlock;
 import com.nobodiiiii.createbiotech.content.powerbelt.PowerBeltBlock;
 import com.nobodiiiii.createbiotech.content.slimebelt.SlimeBeltBlock;
 import com.nobodiiiii.createbiotech.content.slimeclutch.SlimeClutchBlock;
@@ -147,6 +148,13 @@ public class CBBlocks {
 			.sound(SoundType.COPPER)
 			.strength(2.0f)
 			.mapColor(MapColor.TERRACOTTA_BLUE)
+			.noOcclusion()));
+
+	public static final RegistryObject<PetriDishBlock> PETRI_DISH = BLOCKS.register("petri_dish",
+		() -> new PetriDishBlock(Block.Properties.of()
+			.sound(SoundType.GLASS)
+			.strength(1.5f)
+			.mapColor(MapColor.METAL)
 			.noOcclusion()));
 
 	public static final RegistryObject<UniversalJointBlock> UNIVERSAL_JOINT = BLOCKS.register("universal_joint",

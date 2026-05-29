@@ -16,6 +16,7 @@ import com.nobodiiiii.createbiotech.content.schrodingerscat.SchrodingersCatBlock
 import com.nobodiiiii.createbiotech.content.spiderassemblytable.SpiderAssemblyTableCogBlockEntity;
 import com.nobodiiiii.createbiotech.content.spiderassemblytable.SpiderAssemblyTableBlockEntity;
 import com.nobodiiiii.createbiotech.content.magmabelt.MagmaBeltBlockEntity;
+import com.nobodiiiii.createbiotech.content.petridish.PetriDishBlockEntity;
 import com.nobodiiiii.createbiotech.content.powerbelt.PowerBeltBlockEntity;
 import com.nobodiiiii.createbiotech.content.slimebelt.SlimeBeltBlockEntity;
 import com.nobodiiiii.createbiotech.content.slimeclutch.SlimeClutchBlockEntity;
@@ -118,6 +119,12 @@ public class CBBlockEntityTypes {
 			() -> BlockEntityType.Builder
 				.of((pos, state) -> new SquidPrinterBlockEntity(CBBlockEntityTypes.SQUID_PRINTER.get(), pos, state),
 					CBBlocks.SQUID_PRINTER.get())
+				.build(null));
+
+	public static final RegistryObject<BlockEntityType<PetriDishBlockEntity>> PETRI_DISH =
+		BLOCK_ENTITY_TYPES.register("petri_dish",
+			() -> BlockEntityType.Builder
+				.of(PetriDishBlockEntity::new, CBBlocks.PETRI_DISH.get())
 				.build(null));
 
 	public static final RegistryObject<BlockEntityType<UniversalJointBlockEntity>> UNIVERSAL_JOINT =

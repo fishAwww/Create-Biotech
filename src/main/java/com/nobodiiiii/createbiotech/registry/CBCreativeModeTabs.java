@@ -36,6 +36,7 @@ public class CBCreativeModeTabs {
 				output.accept(CBItems.EXPERIENCE_TANK.get());
 				output.accept(CBItems.EXPERIENCE_PIPE.get());
 				output.accept(CBItems.SQUID_PRINTER.get());
+				output.accept(CBItems.PETRI_DISH.get());
 				output.accept(CBItems.ENCHANTMENT_BOOK_COPY.get());
 				output.accept(CBItems.SLIME_BELT_CONNECTOR.get());
 				output.accept(CBItems.MAGMA_BELT_CONNECTOR.get());

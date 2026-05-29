@@ -1,0 +1,34 @@
+{
+  "ambientocclusion": false,
+  "render_type": "minecraft:translucent",
+  "textures": {
+    "particle": "create:block/brass_casing",
+    "brass": "create:block/brass_casing",
+    "glass": "minecraft:block/glass"
+  },
+  "elements": [
+    {
+      "from": [1, 0, 1],
+      "to": [15, 4, 15],
+      "faces": {
+        "down": { "texture": "#brass" },
+        "up": { "texture": "#brass" },
+        "north": { "texture": "#brass" },
+        "south": { "texture": "#brass" },
+        "west": { "texture": "#brass" },
+        "east": { "texture": "#brass" }
+      }
+    },
+    {
+      "from": [1, 4, 1],
+      "to": [15, 8, 15],
+      "faces": {
+        "up": { "texture": "#glass" },
+        "north": { "texture": "#glass", "tintindex": 0 },
+        "south": { "texture": "#glass", "tintindex": 0 },
+        "west": { "texture": "#glass", "tintindex": 0 },
+        "east": { "texture": "#glass", "tintindex": 0 }
+      }
+    }
+  ]
+}

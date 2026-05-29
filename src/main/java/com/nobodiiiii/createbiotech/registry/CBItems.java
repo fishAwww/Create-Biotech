@@ -76,6 +76,9 @@ public class CBItems {
 	public static final RegistryObject<Item> SQUID_PRINTER = ITEMS.register("squid_printer",
 		() -> new SquidPrinterItem(CBBlocks.SQUID_PRINTER.get(), new Item.Properties()));
 
+	public static final RegistryObject<Item> PETRI_DISH = ITEMS.register("petri_dish",
+		() -> new BlockItem(CBBlocks.PETRI_DISH.get(), new Item.Properties()));
+
 	public static final RegistryObject<EnchantmentBookCopyItem> ENCHANTMENT_BOOK_COPY =
 		ITEMS.register("enchantment_book_copy", () -> new EnchantmentBookCopyItem(new Item.Properties()));
 
