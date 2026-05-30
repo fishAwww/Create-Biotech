@@ -521,6 +521,12 @@ public class PetriDishBlockEntity extends SmartBlockEntity implements IHaveGoggl
 		float spawnYaw = getSpawnYaw();
 		livingEntity.moveTo(livingEntity.getX(), livingEntity.getY(), livingEntity.getZ(), spawnYaw,
 			livingEntity.getXRot());
+		livingEntity.setYRot(spawnYaw);
+		livingEntity.yRotO = spawnYaw;
+		livingEntity.setYBodyRot(spawnYaw);
+		livingEntity.yBodyRotO = spawnYaw;
+		livingEntity.setYHeadRot(spawnYaw);
+		livingEntity.yHeadRotO = spawnYaw;
 		SlimeMimicHandler.markSpawnedEntity(livingEntity);
 		emergenceInProgress = false;
 		emergenceTicksRemaining = 0;
@@ -619,7 +625,7 @@ public class PetriDishBlockEntity extends SmartBlockEntity implements IHaveGoggl
 		sendData();
 	}
 
-	private float getSpawnYaw() {
+	public float getSpawnYaw() {
 		if (getBlockState().hasProperty(PetriDishBlock.FACING))
 			return getBlockState().getValue(PetriDishBlock.FACING).toYRot();
 		return 0.0f;

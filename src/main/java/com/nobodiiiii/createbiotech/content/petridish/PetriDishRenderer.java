@@ -1,14 +1,18 @@
 package com.nobodiiiii.createbiotech.content.petridish;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import com.nobodiiiii.createbiotech.foundation.render.EntityRenderHelper;
 import com.simibubi.create.foundation.blockEntity.renderer.SmartBlockEntityRenderer;
 
 import net.createmod.catnip.animation.AnimationTickHolder;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import net.minecraft.core.Direction;
+import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.Blocks;
@@ -30,8 +34,10 @@ public class PetriDishRenderer extends SmartBlockEntityRenderer<PetriDishBlockEn
 	private static final float EMERGENCE_SWITCH_PROGRESS = 0.5f;
 	private static final float EMERGENCE_CREATURE_LAND_Y = 1.0f;
 	private static final float EMERGENCE_SWITCH_Y = 1.22f;
-	private static final float EMERGENCE_PREVIEW_SCALE = 0.62f;
+	private static final float EMERGENCE_PREVIEW_SCALE = 1.0f;
 	private static final float EMERGENCE_SLIME_POP_SCALE = 0.84f;
+	private static final float BIONIC_ITEM_Y = 5.2f / 16.0f;
+	private static final float BIONIC_ITEM_SCALE = 0.8f;
 
 	private final BlockRenderDispatcher blockRenderer;
 
@@ -46,8 +52,10 @@ public class PetriDishRenderer extends SmartBlockEntityRenderer<PetriDishBlockEn
 		super.renderSafe(be, partialTicks, poseStack, buffer, packedLight, packedOverlay);
 
 		int growthStage = be.getRenderedSlimeStage();
-		if (growthStage <= 0)
+		if (growthStage <= 0) {
+			renderIdleBionicMechanism(be, poseStack, buffer, packedLight, packedOverlay);
 			return;
+		}
 
 		if (be.isEmergenceAnimating()) {
 			renderEmergence(be, partialTicks, poseStack, buffer, packedLight, packedOverlay);
@@ -56,6 +64,25 @@ public class PetriDishRenderer extends SmartBlockEntityRenderer<PetriDishBlockEn
 
 		float baseScale = getBaseScale(be, partialTicks);
 		renderSlimeCube(be, poseStack, buffer, packedLight, packedOverlay, baseScale, SLIME_BASE_Y);
+	}
+
+	private void renderIdleBionicMechanism(PetriDishBlockEntity be, PoseStack poseStack, MultiBufferSource buffer,
+		int packedLight, int packedOverlay) {
+		ItemStack bionicMechanism = be.getBionicMechanism();
+		if (bionicMechanism.isEmpty() || be.isEmergenceAnimating())
+			return;
+		if (be.getLevel() == null)
+			return;
+
+		ItemRenderer itemRenderer = Minecraft.getInstance().getItemRenderer();
+
+		poseStack.pushPose();
+		poseStack.translate(0.5f, BIONIC_ITEM_Y, 0.5f);
+		poseStack.mulPose(Axis.XP.rotationDegrees(90.0f));
+		poseStack.scale(BIONIC_ITEM_SCALE, BIONIC_ITEM_SCALE, BIONIC_ITEM_SCALE);
+		itemRenderer.renderStatic(bionicMechanism, ItemDisplayContext.FIXED, packedLight, packedOverlay, poseStack,
+			buffer, be.getLevel(), 0);
+		poseStack.popPose();
 	}
 
 	private void renderEmergence(PetriDishBlockEntity be, float partialTicks, PoseStack poseStack,
@@ -83,7 +110,7 @@ public class PetriDishRenderer extends SmartBlockEntityRenderer<PetriDishBlockEn
 
 		float previewScale = Mth.lerp(easeOutBack(descentProgress, 0.9f), 0.36f, EMERGENCE_PREVIEW_SCALE);
 		float previewYOffset = Mth.lerp(easeInQuad(descentProgress), EMERGENCE_SWITCH_Y, EMERGENCE_CREATURE_LAND_Y);
-		float yaw = be.getBlockState().getValue(PetriDishBlock.FACING).toYRot();
+		float yaw = be.getSpawnYaw();
 
 		poseStack.pushPose();
 		poseStack.translate(0.5f, previewYOffset, 0.5f);
@@ -93,7 +120,9 @@ public class PetriDishRenderer extends SmartBlockEntityRenderer<PetriDishBlockEn
 			.partialTicks(partialTicks)
 			.ticks(Mth.floor(AnimationTickHolder.getRenderTime(be.getLevel())))
 			.renderShadow(false)
-			.face(Direction.fromYRot(yaw))
+			.yaw(yaw)
+			.bodyYaw(yaw)
+			.headYaw(yaw)
 			.dispatcherYaw(0.0f)
 			.flushBuffers(false), poseStack, buffer);
 		poseStack.popPose();
