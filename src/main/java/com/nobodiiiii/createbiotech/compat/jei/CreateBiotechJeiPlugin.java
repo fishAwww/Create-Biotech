@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
 import com.nobodiiiii.createbiotech.content.creeperblastchamber.CreeperBlastChamberHighPressureRecipe;
+import com.nobodiiiii.createbiotech.content.processing.basin.BasinEntityProcessingOperation;
 import com.nobodiiiii.createbiotech.content.processing.basin.BasinEntityProcessingRecipe;
 import com.nobodiiiii.createbiotech.registry.CBBlocks;
 import com.nobodiiiii.createbiotech.registry.CBItems;
@@ -14,6 +15,7 @@ import com.simibubi.create.content.kinetics.crusher.AbstractCrushingRecipe;
 import com.simibubi.create.content.kinetics.deployer.ItemApplicationRecipe;
 import com.simibubi.create.content.kinetics.deployer.ManualApplicationRecipe;
 import com.simibubi.create.content.kinetics.mixer.CompactingRecipe;
+import com.simibubi.create.content.kinetics.mixer.MixingRecipe;
 import com.simibubi.create.content.processing.basin.BasinRecipe;
 import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder;
 
@@ -29,9 +31,12 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraftforge.fluids.FluidStack;
 
 @JeiPlugin
 public class CreateBiotechJeiPlugin implements IModPlugin {
+	private static final RecipeType<BasinRecipe> CREATE_MIXING =
+		new RecipeType<>(Create.asResource("mixing"), BasinRecipe.class);
 	private static final RecipeType<BasinRecipe> CREATE_PACKING =
 		new RecipeType<>(Create.asResource("packing"), BasinRecipe.class);
 	private static final RecipeType<AbstractCrushingRecipe> CREATE_CRUSHING =
@@ -65,7 +70,8 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 		registration.addRecipes(EvokerEnchantingChamberJeiCategory.TYPE, EvokerEnchantingChamberJeiRecipes.create());
 		registration.addRecipes(ExperienceCrystallizerJeiCategory.TYPE, ExperienceJeiRecipes.crystallizer());
 		registration.addRecipes(ExperiencePumpJeiCategory.TYPE, ExperienceJeiRecipes.pump());
-		registration.addRecipes(CREATE_PACKING, basinEntityProcessingPackingRecipes());
+		registration.addRecipes(CREATE_MIXING, basinEntityProcessingRecipes(BasinEntityProcessingOperation.MIXING));
+		registration.addRecipes(CREATE_PACKING, basinEntityProcessingRecipes(BasinEntityProcessingOperation.PRESSING));
 		registration.addRecipes(CREATE_ITEM_APPLICATION, itemApplicationRecipes());
 	}
 
@@ -82,7 +88,7 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 		registration.addRecipeCatalyst(new ItemStack(CBBlocks.EXPERIENCE_PUMP.get()), ExperiencePumpJeiCategory.TYPE);
 	}
 
-	private static List<BasinRecipe> basinEntityProcessingPackingRecipes() {
+	private static List<BasinRecipe> basinEntityProcessingRecipes(BasinEntityProcessingOperation operation) {
 		ClientPacketListener connection = Minecraft.getInstance()
 			.getConnection();
 		if (connection == null)
@@ -91,7 +97,8 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 		return connection.getRecipeManager()
 			.getAllRecipesFor(CBRecipeTypes.BASIN_ENTITY_PROCESSING_TYPE.get())
 			.stream()
-			.map(CreateBiotechJeiPlugin::asPackingRecipe)
+			.filter(recipe -> recipe.getOperation() == operation)
+			.map(CreateBiotechJeiPlugin::asCreateBasinRecipe)
 			.toList();
 	}
 
@@ -105,15 +112,25 @@ public class CreateBiotechJeiPlugin implements IModPlugin {
 			.getAllRecipesFor(CBRecipeTypes.CREEPER_BLAST_CHAMBER_HIGH_PRESSURE_TYPE.get());
 	}
 
-	private static BasinRecipe asPackingRecipe(BasinEntityProcessingRecipe recipe) {
+	private static BasinRecipe asCreateBasinRecipe(BasinEntityProcessingRecipe recipe) {
 		NonNullList<Ingredient> ingredients = NonNullList.create();
 		ingredients.addAll(recipe.getIngredients());
 		ingredients.add(Ingredient.of(CBItems.CAPTURED_SMALL_SLIME.get()));
 
-		ProcessingRecipeBuilder<CompactingRecipe> builder =
-			new ProcessingRecipeBuilder<>(CompactingRecipe::new, recipe.getId())
-				.withItemIngredients(ingredients);
+		return switch (recipe.getOperation()) {
+			case MIXING -> buildCreateBasinRecipe(new ProcessingRecipeBuilder<>(MixingRecipe::new, recipe.getId()),
+				ingredients, recipe);
+			case PRESSING -> buildCreateBasinRecipe(new ProcessingRecipeBuilder<>(CompactingRecipe::new, recipe.getId()),
+				ingredients, recipe);
+		};
+	}
+
+	private static <T extends BasinRecipe> T buildCreateBasinRecipe(ProcessingRecipeBuilder<T> builder,
+		NonNullList<Ingredient> ingredients, BasinEntityProcessingRecipe recipe) {
+		builder.withItemIngredients(ingredients);
 		for (ItemStack result : recipe.getRollableResults())
+			builder.output(result.copy());
+		for (FluidStack result : recipe.getFluidResults())
 			builder.output(result.copy());
 		return builder.build();
 	}

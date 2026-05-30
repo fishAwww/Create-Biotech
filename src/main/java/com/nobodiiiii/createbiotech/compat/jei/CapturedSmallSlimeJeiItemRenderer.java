@@ -32,7 +32,7 @@ public class CapturedSmallSlimeJeiItemRenderer extends BlockEntityWithoutLevelRe
 	private static final double DEFAULT_WORLD_X = 0.5d;
 	private static final double DEFAULT_WORLD_Y = 0.45d;
 	private static final double DEFAULT_WORLD_Z = 0.5d;
-	private static final double DEFAULT_GUI_SCALE = 0.7d;
+	private static final double DEFAULT_GUI_SCALE = 0.5d;
 	private static final double DEFAULT_GROUND_SCALE = 0.75d;
 	private static final double DEFAULT_OTHER_SCALE = 0.55d;
 

@@ -3,12 +3,18 @@
   "category": "misc",
   "pattern": [
     "GGG",
-    " B ",
-    "   "
+    "GTG",
+    "PBP"
   ],
   "key": {
     "G": {
       "item": "minecraft:glass"
+    },
+    "T": {
+      "item": "minecraft:totem_of_undying"
+    },
+    "P": {
+      "item": "create:precision_mechanism"
     },
     "B": {
       "item": "create:brass_casing"
