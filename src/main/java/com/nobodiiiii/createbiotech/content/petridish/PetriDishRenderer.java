@@ -37,7 +37,7 @@ public class PetriDishRenderer extends SmartBlockEntityRenderer<PetriDishBlockEn
 	private static final float EMERGENCE_PREVIEW_SCALE = 1.0f;
 	private static final float EMERGENCE_SLIME_POP_SCALE = 0.84f;
 	private static final float BIONIC_ITEM_Y = 5.2f / 16.0f;
-	private static final float BIONIC_ITEM_SCALE = 0.8f;
+	private static final float BIONIC_ITEM_SCALE = 0.5f;
 
 	private final BlockRenderDispatcher blockRenderer;
 
