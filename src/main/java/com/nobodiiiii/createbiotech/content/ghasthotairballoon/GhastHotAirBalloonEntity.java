@@ -27,6 +27,7 @@ import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.PacketDistributor;
 
@@ -141,11 +142,28 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 
 		super.tick();
 
-		if (!level().isClientSide)
+		if (!level().isClientSide) {
+			restorePassengerSeatMappings();
 			cachePassengerSeatMappings();
+		}
 
 		if (ghast != null)
 			syncGhastYawToBalloon(ghast);
+	}
+
+	@Override
+	public Vec3 getPassengerPosition(Entity passenger, float partialTicks) {
+		if (getContraption() == null)
+			return null;
+
+		if (passenger instanceof OrientedContraptionEntity)
+			return super.getPassengerPosition(passenger, partialTicks);
+
+		BlockPos seat = resolvePassengerSeat(passenger);
+		if (seat == null)
+			return super.getPassengerPosition(passenger, partialTicks);
+
+		return getPassengerPositionForSeat(passenger, partialTicks, seat);
 	}
 
 	public void setMagnetTarget(BlockPos pos) {
@@ -213,6 +231,41 @@ public class GhastHotAirBalloonEntity extends OrientedContraptionEntity {
 			AllPackets.getChannel().send(PacketDistributor.TRACKING_ENTITY.with(() -> this),
 				new ContraptionSeatMappingPacket(getId(), seatMapping));
 		}
+	}
+
+	private BlockPos resolvePassengerSeat(Entity passenger) {
+		if (getContraption() == null)
+			return null;
+
+		BlockPos mappedSeat = getContraption().getSeatOf(passenger.getUUID());
+		if (mappedSeat != null)
+			return mappedSeat;
+
+		Integer persistedSeatIndex = getPersistedSeatIndex(passenger);
+		if (persistedSeatIndex == null)
+			return null;
+		if (persistedSeatIndex < 0 || persistedSeatIndex >= getContraption().getSeats().size())
+			return null;
+
+		return getContraption().getSeats().get(persistedSeatIndex);
+	}
+
+	private Integer getPersistedSeatIndex(Entity passenger) {
+		CompoundTag data = passenger.getPersistentData();
+		if (!data.contains(PERSISTED_SEAT_INDEX_TAG, Tag.TAG_INT) || !data.hasUUID(PERSISTED_VEHICLE_TAG))
+			return null;
+		if (!getUUID().equals(data.getUUID(PERSISTED_VEHICLE_TAG)))
+			return null;
+		return data.getInt(PERSISTED_SEAT_INDEX_TAG);
+	}
+
+	private Vec3 getPassengerPositionForSeat(Entity passenger, float partialTicks, BlockPos seat) {
+		AABB bb = passenger.getBoundingBox();
+		double ySize = bb.getYsize();
+		return toGlobalVector(Vec3.atLowerCornerOf(seat)
+			.add(.5, passenger.getMyRidingOffset() + ySize - .15f, .5), partialTicks)
+			.add(VecHelper.getCenterOf(BlockPos.ZERO))
+			.subtract(0.5, ySize, 0.5);
 	}
 
 	private void cachePassengerSeatMappings() {
