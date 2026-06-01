@@ -17,6 +17,7 @@ import com.nobodiiiii.createbiotech.content.magmabelt.MagmaBeltConnectorItem;
 import com.nobodiiiii.createbiotech.content.powerbelt.PowerBeltConnectorItem;
 import com.nobodiiiii.createbiotech.content.processing.basin.CapturedSmallSlimeItem;
 import com.nobodiiiii.createbiotech.content.slimebelt.SlimeBeltConnectorItem;
+import com.nobodiiiii.createbiotech.content.smartglue.SmartSuperGlueItem;
 import com.nobodiiiii.createbiotech.content.spiderassemblytable.SpiderAssemblyTableItem;
 import com.nobodiiiii.createbiotech.content.squidprinter.EnchantmentBookCopyItem;
 import com.nobodiiiii.createbiotech.content.squidprinter.SquidPrinterItem;
@@ -90,6 +91,9 @@ public class CBItems {
 
 	public static final RegistryObject<Item> POWER_BELT_CONNECTOR = ITEMS.register("power_belt_connector",
 		() -> new PowerBeltConnectorItem(new Item.Properties()));
+
+	public static final RegistryObject<Item> SMART_SUPER_GLUE = ITEMS.register("smart_super_glue",
+		() -> new SmartSuperGlueItem(new Item.Properties().stacksTo(1).durability(99)));
 
 	public static final RegistryObject<Item> HALF_SHAFT = ITEMS.register("half_shaft",
 		() -> new Item(new Item.Properties()));

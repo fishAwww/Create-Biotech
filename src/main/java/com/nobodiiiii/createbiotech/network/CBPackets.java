@@ -9,6 +9,8 @@ import com.nobodiiiii.createbiotech.content.biopackager.BioPackagerContraptionAn
 import com.nobodiiiii.createbiotech.content.ghasthotairballoon.GhastBalloonMagnetTargetPacket;
 import com.nobodiiiii.createbiotech.content.powerbelt.PowerBeltEntityAnimationPacket;
 import com.nobodiiiii.createbiotech.content.powerbelt.PowerBeltSurfaceMovementPacket;
+import com.nobodiiiii.createbiotech.content.smartglue.SmartSuperGlueRemovalPacket;
+import com.nobodiiiii.createbiotech.content.smartglue.SmartSuperGlueSelectionPacket;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.Entity;
@@ -20,7 +22,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public class CBPackets {
 
-	private static final String NETWORK_VERSION = "2";
+	private static final String NETWORK_VERSION = "3";
 	private static final SimpleChannel CHANNEL = NetworkRegistry.ChannelBuilder.named(CreateBiotech.asResource("main"))
 		.serverAcceptedVersions(NETWORK_VERSION::equals)
 		.clientAcceptedVersions(NETWORK_VERSION::equals)
@@ -42,6 +44,12 @@ public class CBPackets {
 			NetworkDirection.PLAY_TO_CLIENT);
 		register(GhastBalloonMagnetTargetPacket.class, GhastBalloonMagnetTargetPacket::new,
 			GhastBalloonMagnetTargetPacket::write, GhastBalloonMagnetTargetPacket::handle,
+			NetworkDirection.PLAY_TO_SERVER);
+		register(SmartSuperGlueSelectionPacket.class, SmartSuperGlueSelectionPacket::new,
+			SmartSuperGlueSelectionPacket::write, SmartSuperGlueSelectionPacket::handle,
+			NetworkDirection.PLAY_TO_SERVER);
+		register(SmartSuperGlueRemovalPacket.class, SmartSuperGlueRemovalPacket::new,
+			SmartSuperGlueRemovalPacket::write, SmartSuperGlueRemovalPacket::handle,
 			NetworkDirection.PLAY_TO_SERVER);
 	}
 
