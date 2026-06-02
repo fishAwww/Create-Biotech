@@ -22,6 +22,7 @@ import com.nobodiiiii.createbiotech.content.spiderassemblytable.SpiderAssemblyTa
 import com.nobodiiiii.createbiotech.content.squidprinter.EnchantmentBookCopyItem;
 import com.nobodiiiii.createbiotech.content.squidprinter.SquidPrinterItem;
 import com.nobodiiiii.createbiotech.content.universaljoint.UniversalJointItem;
+import com.nobodiiiii.createbiotech.content.wirelessterminal.WirelessTerminalItem;
 
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -94,6 +95,9 @@ public class CBItems {
 
 	public static final RegistryObject<Item> SMART_SUPER_GLUE = ITEMS.register("smart_super_glue",
 		() -> new SmartSuperGlueItem(new Item.Properties().stacksTo(1).durability(99)));
+
+	public static final RegistryObject<Item> WIRELESS_TERMINAL = ITEMS.register("wireless_terminal",
+		() -> new WirelessTerminalItem(new Item.Properties().stacksTo(1)));
 
 	public static final RegistryObject<Item> HALF_SHAFT = ITEMS.register("half_shaft",
 		() -> new Item(new Item.Properties()));

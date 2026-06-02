@@ -2,6 +2,7 @@ package com.nobodiiiii.createbiotech.registry;
 
 import com.nobodiiiii.createbiotech.CreateBiotech;
 import com.nobodiiiii.createbiotech.content.spiderassemblytable.SpiderAssemblyTableMenu;
+import com.nobodiiiii.createbiotech.content.wirelessterminal.WirelessStockKeeperRequestMenu;
 
 import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.common.extensions.IForgeMenuType;
@@ -17,6 +18,10 @@ public class CBMenuTypes {
 
 	public static final RegistryObject<MenuType<SpiderAssemblyTableMenu>> SPIDER_ASSEMBLY_TABLE =
 		MENU_TYPES.register("spider_assembly_table", () -> IForgeMenuType.create(SpiderAssemblyTableMenu::new));
+
+	public static final RegistryObject<MenuType<WirelessStockKeeperRequestMenu>> WIRELESS_STOCK_KEEPER_REQUEST =
+		MENU_TYPES.register("wireless_stock_keeper_request",
+			() -> IForgeMenuType.create(WirelessStockKeeperRequestMenu::new));
 
 	private CBMenuTypes() {}
 
