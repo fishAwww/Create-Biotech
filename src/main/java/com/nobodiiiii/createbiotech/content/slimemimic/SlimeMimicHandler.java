@@ -62,13 +62,18 @@ public final class SlimeMimicHandler {
 			setSlimeMimic(livingEntity, true);
 	}
 
+	public static CompoundTag createPreparedEntityTag(@Nullable CompoundTag originalTag) {
+		CompoundTag preparedTag = originalTag == null ? new CompoundTag() : originalTag.copy();
+		preparedTag.putBoolean(SLIME_MIMIC_TAG, true);
+		return preparedTag;
+	}
+
 	public static CompoundTag createPreparedSpawnEggTag(ItemStack stack) {
 		CompoundTag preparedTag = stack.getTag() == null ? new CompoundTag() : stack.getTag().copy();
 		CompoundTag entityTag = preparedTag.contains("EntityTag", Tag.TAG_COMPOUND)
 			? preparedTag.getCompound("EntityTag").copy()
 			: new CompoundTag();
-		entityTag.putBoolean(SLIME_MIMIC_TAG, true);
-		preparedTag.put("EntityTag", entityTag);
+		preparedTag.put("EntityTag", createPreparedEntityTag(entityTag));
 		return preparedTag;
 	}
 

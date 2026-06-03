@@ -2,7 +2,6 @@ package com.nobodiiiii.createbiotech.content.petridish;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
-import com.nobodiiiii.createbiotech.foundation.render.EntityRenderHelper;
 import com.simibubi.create.foundation.blockEntity.renderer.SmartBlockEntityRenderer;
 
 import net.createmod.catnip.animation.AnimationTickHolder;
@@ -15,9 +14,9 @@ import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.LivingEntity;
 
 public class PetriDishRenderer extends SmartBlockEntityRenderer<PetriDishBlockEntity> {
 
@@ -32,12 +31,9 @@ public class PetriDishRenderer extends SmartBlockEntityRenderer<PetriDishBlockEn
 	private static final float IDLE_HORIZONTAL_SQUASH = 0.06f;
 	private static final float GROWTH_OVERSHOOT = 1.15f;
 	private static final float EMERGENCE_OVERSHOOT = 1.3f;
-	private static final float EMERGENCE_SLIME_PHASE_END = 0.4f;
-	private static final float EMERGENCE_PREVIEW_OVERSHOOT_END = 0.75f;
-	private static final float EMERGENCE_PREVIEW_START_FACTOR = 0.8f;
-	private static final float EMERGENCE_PREVIEW_OVERSHOOT_FACTOR = 1.1f;
-	private static final float EMERGENCE_PREVIEW_END_FACTOR = 1.0f;
-	private static final float EMERGENCE_PREVIEW_Y = 2f / 16f;
+	private static final float EMERGENCE_OVERSHOOT_END = 0.86f;
+	private static final float EMERGENCE_OVERSHOOT_FACTOR = 1.1f;
+	private static final float EMERGENCE_END_FACTOR = 1.0f;
 	private static final float BIONIC_ITEM_Y = 3.2f / 16.0f;
 	private static final float BIONIC_ITEM_SCALE = 0.5f;
 
@@ -93,57 +89,30 @@ public class PetriDishRenderer extends SmartBlockEntityRenderer<PetriDishBlockEn
 		LivingEntity previewEntity = be.getClientPreviewEntity();
 
 		if (previewEntity == null) {
-			float fallbackScale = Mth.lerp(easeOutBack(progress, EMERGENCE_OVERSHOOT), STAGE_SCALES[4], STAGE_SCALES[4] * 1.15f);
+			float fallbackScale = getEmergenceScale(progress, STAGE_SCALES[4],
+				STAGE_SCALES[4] * EMERGENCE_OVERSHOOT_FACTOR, STAGE_SCALES[4] * EMERGENCE_END_FACTOR);
 			renderSlimeCube(be, poseStack, buffer, packedLight, packedOverlay, fallbackScale, SLIME_BASE_Y,
-				fallbackScale * 1.12f, fallbackScale, false, false);
+				fallbackScale, fallbackScale, false, false);
 			return;
 		}
 
 		float adultWidth = getAdultWidth(previewEntity);
 		float adultHeight = getAdultHeight(previewEntity);
-		float slimeTargetWidth = Math.max(STAGE_SCALES[4], adultWidth * EMERGENCE_PREVIEW_START_FACTOR);
-		float slimeTargetHeight = Math.max(STAGE_SCALES[4], adultHeight * EMERGENCE_PREVIEW_START_FACTOR);
 
-		if (progress <= EMERGENCE_SLIME_PHASE_END) {
-			float slimeProgress = Mth.clamp(progress / EMERGENCE_SLIME_PHASE_END, 0.0f, 1.0f);
-			float morphCurve = easeOutCubic(slimeProgress);
-			float slimeScaleX = Mth.lerp(easeOutBack(slimeProgress, EMERGENCE_OVERSHOOT), STAGE_SCALES[4], slimeTargetWidth);
-			float slimeScaleY = Mth.lerp(easeOutBack(slimeProgress, 0.9f), STAGE_SCALES[4], slimeTargetHeight);
-			float stretch = Mth.lerp(morphCurve, 1.0f, 1.24f);
-			float squash = Mth.lerp(morphCurve, 1.0f, 0.88f);
-			renderSlimeCube(be, poseStack, buffer, packedLight, packedOverlay, slimeScaleX * squash, SLIME_BASE_Y,
-				slimeScaleY * stretch, slimeScaleX * squash, false, false);
-			return;
-		}
-
-		float previewFactor;
-		if (progress <= EMERGENCE_PREVIEW_OVERSHOOT_END) {
-			float overshootProgress = Mth.clamp((progress - EMERGENCE_SLIME_PHASE_END)
-				/ (EMERGENCE_PREVIEW_OVERSHOOT_END - EMERGENCE_SLIME_PHASE_END), 0.0f, 1.0f);
-			previewFactor = Mth.lerp(easeOutBack(overshootProgress, 0.9f), EMERGENCE_PREVIEW_START_FACTOR,
-				EMERGENCE_PREVIEW_OVERSHOOT_FACTOR);
-		} else {
-			float settleProgress = Mth.clamp((progress - EMERGENCE_PREVIEW_OVERSHOOT_END)
-				/ (1.0f - EMERGENCE_PREVIEW_OVERSHOOT_END), 0.0f, 1.0f);
-			previewFactor = Mth.lerp(easeOutCubic(settleProgress), EMERGENCE_PREVIEW_OVERSHOOT_FACTOR,
-				EMERGENCE_PREVIEW_END_FACTOR);
-		}
-		float yaw = be.getSpawnYaw();
-
-		poseStack.pushPose();
-		poseStack.translate(0.5f, EMERGENCE_PREVIEW_Y, 0.5f);
-		poseStack.scale(previewFactor, previewFactor, previewFactor);
-		EntityRenderHelper.render(EntityRenderHelper.settings(previewEntity)
-			.packedLight(packedLight)
-			.partialTicks(partialTicks)
-			.ticks(Mth.floor(AnimationTickHolder.getRenderTime(be.getLevel())))
-			.renderShadow(false)
-			.yaw(yaw)
-			.bodyYaw(yaw)
-			.headYaw(yaw)
-			.dispatcherYaw(0.0f)
-			.flushBuffers(false), poseStack, buffer);
-		poseStack.popPose();
+		float targetWidth = Math.max(STAGE_SCALES[4], adultWidth * EMERGENCE_END_FACTOR);
+		float targetHeight = Math.max(STAGE_SCALES[4], adultHeight * EMERGENCE_END_FACTOR);
+		float overshootWidth = Math.max(targetWidth, adultWidth * EMERGENCE_OVERSHOOT_FACTOR);
+		float overshootHeight = Math.max(targetHeight, adultHeight * EMERGENCE_OVERSHOOT_FACTOR);
+		float slimeScaleX = getEmergenceScale(progress, STAGE_SCALES[4], overshootWidth, targetWidth);
+		float slimeScaleY = getEmergenceScale(progress, STAGE_SCALES[4], overshootHeight, targetHeight);
+		float morphCurve = progress <= EMERGENCE_OVERSHOOT_END
+			? easeOutCubic(Mth.clamp(progress / EMERGENCE_OVERSHOOT_END, 0.0f, 1.0f))
+			: 1.0f - 0.08f * easeOutCubic(Mth.clamp((progress - EMERGENCE_OVERSHOOT_END)
+				/ (1.0f - EMERGENCE_OVERSHOOT_END), 0.0f, 1.0f));
+		float horizontalSquash = Mth.lerp(morphCurve, 1.0f, 0.92f);
+		float verticalStretch = Mth.lerp(morphCurve, 1.0f, 1.08f);
+		renderSlimeCube(be, poseStack, buffer, packedLight, packedOverlay, slimeScaleX * horizontalSquash,
+			SLIME_BASE_Y, slimeScaleY * verticalStretch, slimeScaleX * horizontalSquash, false, false);
 	}
 
 	private void renderSlimeCube(PetriDishBlockEntity be, PoseStack poseStack, MultiBufferSource buffer, int packedLight,
@@ -202,6 +171,21 @@ public class PetriDishRenderer extends SmartBlockEntityRenderer<PetriDishBlockEn
 		float from = STAGE_SCALES[be.getGrowthAnimationFromStage()];
 		float to = STAGE_SCALES[be.getGrowthAnimationToStage()];
 		return Mth.lerp(easeOutBack(progress, GROWTH_OVERSHOOT), from, to);
+	}
+
+	private static float getEmergenceScale(float progress, float startScale, float endScale) {
+		return getEmergenceScale(progress, startScale, endScale, endScale);
+	}
+
+	private static float getEmergenceScale(float progress, float startScale, float overshootScale, float endScale) {
+		if (progress <= EMERGENCE_OVERSHOOT_END) {
+			float overshootProgress = Mth.clamp(progress / EMERGENCE_OVERSHOOT_END, 0.0f, 1.0f);
+			return Mth.lerp(easeOutBack(overshootProgress, EMERGENCE_OVERSHOOT), startScale, overshootScale);
+		}
+
+		float settleProgress = Mth.clamp((progress - EMERGENCE_OVERSHOOT_END) / (1.0f - EMERGENCE_OVERSHOOT_END),
+			0.0f, 1.0f);
+		return Mth.lerp(easeOutCubic(settleProgress), overshootScale, endScale);
 	}
 
 	private static float easeOutBack(float progress, float overshoot) {

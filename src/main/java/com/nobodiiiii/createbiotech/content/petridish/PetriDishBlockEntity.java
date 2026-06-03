@@ -508,11 +508,16 @@ public class PetriDishBlockEntity extends SmartBlockEntity implements IHaveGoggl
 			return;
 		}
 
-		Entity spawned = entityType.spawn(serverLevel, ItemStack.EMPTY, null, spawnPos, MobSpawnType.DISPENSER, true,
-			false);
+		float spawnYaw = getSpawnYaw();
+		CompoundTag spawnTag = SlimeMimicHandler.createPreparedEntityTag(null);
+		Entity spawned = entityType.spawn(serverLevel, spawnTag, entity -> {
+			entity.moveTo(spawnX, spawnY, spawnZ, spawnYaw, entity.getXRot());
+			SlimeMimicHandler.markSpawnedEntity(entity);
+		}, spawnPos, MobSpawnType.DISPENSER, true, false);
 		if (spawned == null) {
 			spawned = entityType.create(serverLevel);
 			if (spawned != null) {
+				SlimeMimicHandler.markSpawnedEntity(spawned);
 				spawned.moveTo(spawnX, spawnY, spawnZ, serverLevel.random.nextFloat() * 360.0f, 0.0f);
 				serverLevel.addFreshEntity(spawned);
 			}
@@ -522,7 +527,6 @@ public class PetriDishBlockEntity extends SmartBlockEntity implements IHaveGoggl
 			return;
 		}
 
-		float spawnYaw = getSpawnYaw();
 		livingEntity.moveTo(spawnX, spawnY, spawnZ, spawnYaw, livingEntity.getXRot());
 		livingEntity.setYRot(spawnYaw);
 		livingEntity.yRotO = spawnYaw;
