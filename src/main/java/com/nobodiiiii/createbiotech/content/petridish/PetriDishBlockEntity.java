@@ -58,7 +58,7 @@ public class PetriDishBlockEntity extends SmartBlockEntity implements IHaveGoggl
 	public static final int SCAN_RADIUS = 2;
 	public static final int TANK_CAPACITY = 51200;
 	public static final int GROWTH_ANIMATION_DURATION = 8;
-	public static final int EMERGENCE_ANIMATION_DURATION = 24;
+	public static final int EMERGENCE_ANIMATION_DURATION = 20;
 	public static final double EMERGENCE_SPAWN_Y_OFFSET = 2.0d / 16.0d;
 
 	private static final String INVENTORY_TAG = "Inventory";
@@ -366,6 +366,13 @@ public class PetriDishBlockEntity extends SmartBlockEntity implements IHaveGoggl
 			return 0.0f;
 		float tick = Mth.lerp(partialTicks, clientPreviousEmergenceAnimationTick, clientEmergenceAnimationTick);
 		return Mth.clamp(tick / EMERGENCE_ANIMATION_DURATION, 0.0f, 1.0f);
+	}
+
+	public float getEmergenceAnimationTick(float partialTicks) {
+		if (!isEmergenceAnimating())
+			return 0.0f;
+		return Mth.clamp(Mth.lerp(partialTicks, clientPreviousEmergenceAnimationTick, clientEmergenceAnimationTick),
+			0.0f, EMERGENCE_ANIMATION_DURATION);
 	}
 
 	@Nullable
