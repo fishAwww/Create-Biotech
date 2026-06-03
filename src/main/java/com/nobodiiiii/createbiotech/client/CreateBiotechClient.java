@@ -255,11 +255,16 @@ public class CreateBiotechClient {
 				.register(CreateBiotech.asResource("asurine_casing"),
 					model -> new CTModel(model, new EncasedCTBehaviour(CBSpriteShifts.ASURINE_CASING)));
 			CreateClient.MODEL_SWAPPER.getCustomBlockModels()
+				.register(CreateBiotech.asResource("biotech_casing"),
+					model -> new CTModel(model, new EncasedCTBehaviour(CBSpriteShifts.BIOTECH_CASING)));
+			CreateClient.MODEL_SWAPPER.getCustomBlockModels()
 				.register(CreateBiotech.asResource("explosion_proof_casing"),
 					model -> new CTModel(model, new CasingConnectedHorizontalCTBehaviour(
 						CBSpriteShifts.EXPLOSION_PROOF_CASING_SIDE, CBSpriteShifts.EXPLOSION_PROOF_CASING)));
 			CreateClient.CASING_CONNECTIVITY.makeCasing(CBBlocks.ASURINE_CASING.get(),
 				CBSpriteShifts.ASURINE_CASING);
+			CreateClient.CASING_CONNECTIVITY.makeCasing(CBBlocks.BIOTECH_CASING.get(),
+				CBSpriteShifts.BIOTECH_CASING);
 			CreateClient.MODEL_SWAPPER.getCustomBlockModels()
 				.register(CreateBiotech.asResource("creeper_blast_chamber"),
 					model -> new CTModel(model, new CasingConnectedHorizontalCTBehaviour(

@@ -241,6 +241,12 @@ public class CBBlocks {
 				.sound(SoundType.WOOD)
 				.mapColor(MapColor.COLOR_LIGHT_BLUE)));
 
+	public static final RegistryObject<CasingBlock> BIOTECH_CASING =
+		BLOCKS.register("biotech_casing",
+			() -> new CasingBlock(Block.Properties.copy(Blocks.ANDESITE)
+				.sound(SoundType.WOOD)
+				.mapColor(MapColor.COLOR_LIGHT_BLUE)));
+
 	public static final RegistryObject<ExplosionProofCasingBlock> EXPLOSION_PROOF_CASING =
 		BLOCKS.register("explosion_proof_casing",
 			() -> new ExplosionProofCasingBlock(Block.Properties.of()

@@ -1,0 +1,16 @@
+{
+  "type": "create:item_application",
+  "ingredients": [
+    {
+      "item": "create_biotech:asurine_casing"
+    },
+    {
+      "item": "create_biotech:zinc_sheet"
+    }
+  ],
+  "results": [
+    {
+      "item": "create_biotech:biotech_casing"
+    }
+  ]
+}
