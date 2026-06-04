@@ -44,9 +44,6 @@ public class CBItems {
 	public static final RegistryObject<Item> EXPERIENCE_PUMP = ITEMS.register("experience_pump",
 		() -> new BlockItem(CBBlocks.EXPERIENCE_PUMP.get(), new Item.Properties()));
 
-	public static final RegistryObject<Item> EXPERIENCE_CRYSTALLIZER = ITEMS.register("experience_crystallizer",
-		() -> new BlockItem(CBBlocks.EXPERIENCE_CRYSTALLIZER.get(), new Item.Properties()));
-
 	public static final RegistryObject<Item> BUDDING_EXPERIENCE = ITEMS.register("budding_experience",
 		() -> new BlockItem(CBBlocks.BUDDING_EXPERIENCE.get(), new Item.Properties()));
 

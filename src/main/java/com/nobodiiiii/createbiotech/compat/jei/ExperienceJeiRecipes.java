@@ -14,12 +14,6 @@ public final class ExperienceJeiRecipes {
 	private ExperienceJeiRecipes() {
 	}
 
-	public static List<ExperienceCrystallizerJeiRecipe> crystallizer() {
-		return List.of(new ExperienceCrystallizerJeiRecipe(CreateBiotech.asResource("experience_crystallizer/raw_xp"),
-			new ItemStack(CBItems.EXPERIENCE.get()), new ItemStack(AllItems.EXP_NUGGET.get()),
-			List.of(Component.translatable("create_biotech.jei.experience_crystallizer.note"))));
-	}
-
 	public static List<ExperiencePumpJeiRecipe> pump() {
 		ItemStack virtualExperience = new ItemStack(CBItems.EXPERIENCE.get());
 		return List.of(

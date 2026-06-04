@@ -205,7 +205,6 @@ public class CreateBiotechClient {
 				.apply();
 			ItemBlockRenderTypes.setRenderLayer(CBBlocks.BIO_PACKAGER.get(), RenderType.cutoutMipped());
 			ItemBlockRenderTypes.setRenderLayer(CBBlocks.EXPERIENCE_PUMP.get(), RenderType.cutoutMipped());
-			ItemBlockRenderTypes.setRenderLayer(CBBlocks.EXPERIENCE_CRYSTALLIZER.get(), RenderType.cutoutMipped());
 			ItemBlockRenderTypes.setRenderLayer(CBBlocks.MAGMA_BELT.get(), RenderType.cutoutMipped());
 			ItemBlockRenderTypes.setRenderLayer(CBBlocks.POWER_BELT.get(), RenderType.cutoutMipped());
 			ItemBlockRenderTypes.setRenderLayer(CBBlocks.SMALL_EXPERIENCE_BUD.get(), RenderType.cutout());
@@ -303,7 +302,6 @@ public class CreateBiotechClient {
 			.forEach(entry -> ItemDescription.useKey(entry.get(), "block.create_biotech.buffer_pad"));
 
 		registerCreateStyleTooltip(CBItems.BUDDING_EXPERIENCE.get());
-		registerCreateStyleTooltip(CBItems.EXPERIENCE_CRYSTALLIZER.get());
 		registerCreateStyleTooltip(CBItems.SMALL_EXPERIENCE_BUD.get());
 		registerCreateStyleTooltip(CBItems.MEDIUM_EXPERIENCE_BUD.get());
 		registerCreateStyleTooltip(CBItems.LARGE_EXPERIENCE_BUD.get());

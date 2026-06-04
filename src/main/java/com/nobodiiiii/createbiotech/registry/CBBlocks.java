@@ -12,7 +12,6 @@ import com.nobodiiiii.createbiotech.content.evokerenchantingchamber.EvokerEnchan
 import com.nobodiiiii.createbiotech.content.experience.BuddingExperienceBlock;
 import com.nobodiiiii.createbiotech.content.experience.ExperienceClusterBlock;
 import com.nobodiiiii.createbiotech.content.experience.ExperienceConstants;
-import com.nobodiiiii.createbiotech.content.experience.ExperienceCrystallizerBlock;
 import com.nobodiiiii.createbiotech.content.experience.ExperiencePumpBlock;
 import com.nobodiiiii.createbiotech.content.experience.ExperienceTankBlock;
 import com.nobodiiiii.createbiotech.content.experience.pipe.ExperienceEncasedPipeBlock;
@@ -88,14 +87,6 @@ public class CBBlocks {
 			.strength(2.5f)
 			.mapColor(MapColor.METAL)
 			.noOcclusion()));
-
-	public static final RegistryObject<ExperienceCrystallizerBlock> EXPERIENCE_CRYSTALLIZER =
-		BLOCKS.register("experience_crystallizer",
-			() -> new ExperienceCrystallizerBlock(Block.Properties.of()
-				.sound(SoundType.WOOD)
-				.strength(2.0f)
-				.mapColor(MapColor.WOOD)
-				.noOcclusion()));
 
 	public static final RegistryObject<BuddingExperienceBlock> BUDDING_EXPERIENCE =
 		BLOCKS.register("budding_experience",

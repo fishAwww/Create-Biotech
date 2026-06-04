@@ -69,7 +69,7 @@ By default, follow these conventions:
 - **Custom belts** — Slime Belt, Magma Cube Belt, and Power Belt. They follow the usual Create belt behavior and support funnels, tunnels, and the related mixin behavior.
 - **Basin entity processing** — entities can enter a Basin through funnels and then be processed as ingredients by the Mechanical Press or Mixer. Recipes live under `content/processing/basin/`.
 - **Contraptions** — the Ghast Hot Air Balloon can be assembled into a moving contraption; Buffer Pads provide color-coded movement behavior.
-- **Specialty machines** — Spider Assembly Table, Squid Printer (enchanted book copier), Evoker Enchanting Chamber, Creeper Blast Chamber, Bio Packager, Experience pump/crystallizer/buds/tank, Schrödinger's Cat (quantum redstone), Universal Joint (3D rotation transfer), Bone Ratchet, Slime Clutch, Fixed Carrot Fishing Rod, Explosion-Proof Item Vault, Cardboard Box mob capture.
+- **Specialty machines** — Spider Assembly Table, Squid Printer (enchanted book copier), Evoker Enchanting Chamber, Creeper Blast Chamber, Bio Packager, Experience pump/buds/tank, Schrödinger's Cat (quantum redstone), Universal Joint (3D rotation transfer), Bone Ratchet, Slime Clutch, Fixed Carrot Fishing Rod, Explosion-Proof Item Vault, Cardboard Box mob capture.
 - **Fluids** — Liquid Living Slime and a fluid equivalent of experience.
 
 Open [src/main/java/com/nobodiiiii/createbiotech/content/](src/main/java/com/nobodiiiii/createbiotech/content/) and the folder names will quickly lead you to the matching feature.
