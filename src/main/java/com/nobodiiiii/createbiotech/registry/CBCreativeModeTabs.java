@@ -27,10 +27,15 @@ public class CBCreativeModeTabs {
 			.displayItems((parameters, output) -> {
 				output.accept(CBItems.CARDBOARD_BOX.get());
 				output.accept(CBItems.LARGE_CARDBOARD_BOX.get());
+				output.accept(CBItems.SCHRODINGERS_CAT.get());
+				output.accept(CBItems.SMART_SUPER_GLUE.get());
+				output.accept(CBItems.WIRELESS_TERMINAL.get());
 				output.accept(CBItems.BIO_PACKAGER.get());
 				output.accept(CBItems.UNIVERSAL_JOINT.get());
 				output.accept(CBItems.SLIME_CLUTCH.get());
 				output.accept(CBItems.BONE_RATCHET.get());
+				output.accept(CBItems.SPIDER_ASSEMBLY_TABLE.get());
+				output.accept(CBItems.FIXED_CARROT_FISHING_ROD.get());
 				output.accept(CBItems.POWER_BELT_CONNECTOR.get());
 				output.accept(CBItems.SLIME_BELT_CONNECTOR.get());
 				output.accept(CBItems.MAGMA_BELT_CONNECTOR.get());
@@ -44,12 +49,6 @@ public class CBCreativeModeTabs {
 				output.accept(CBItems.MEDIUM_EXPERIENCE_BUD.get());
 				output.accept(CBItems.LARGE_EXPERIENCE_BUD.get());
 				output.accept(CBItems.EXPERIENCE_CLUSTER.get());
-				output.accept(CBItems.PETRI_DISH.get());
-				output.accept(CBItems.SMART_SUPER_GLUE.get());
-				output.accept(CBItems.WIRELESS_TERMINAL.get());
-				output.accept(CBItems.SCHRODINGERS_CAT.get());
-				output.accept(CBItems.SPIDER_ASSEMBLY_TABLE.get());
-				output.accept(CBItems.FIXED_CARROT_FISHING_ROD.get());
 				output.accept(CBItems.GHAST_HOT_AIR_BALLOON_ASSEMBLY_STATION.get());
 				output.accept(CBItems.GHAST_HELM.get());
 				acceptBufferPads(output);
@@ -60,6 +59,7 @@ public class CBCreativeModeTabs {
 				output.accept(CBItems.BLAST_PROOF_FRAMED_GLASS.get());
 				output.accept(CBItems.ASURINE_CASING.get());
 				output.accept(CBItems.BIOTECH_CASING.get());
+				output.accept(CBItems.PETRI_DISH.get());
 				output.accept(CBItems.ASURINE_ALLOY.get());
 				output.accept(CBItems.ZINC_SHEET.get());
 				output.accept(CBItems.BIONIC_MECHANISM.get());
