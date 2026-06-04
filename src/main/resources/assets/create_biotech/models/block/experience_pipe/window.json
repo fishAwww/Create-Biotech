@@ -2,7 +2,7 @@
 	"credit": "Made with Blockbench",
 	"parent": "block/block",
 	"textures": {
-		"0": "create_biotech:block/glass_fluid_pipe",
+		"0": "create_biotech:block/pipes/glass_window",
 		"particle": "block/copper_block"
 	},
 	"elements": [

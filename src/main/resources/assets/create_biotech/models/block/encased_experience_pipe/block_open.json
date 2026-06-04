@@ -1,8 +1,8 @@
 {
 	"credit": "Made with Blockbench",
 	"textures": {
-		"0": "create_biotech:block/encased_pipe",
-		"particle": "create_biotech:block/encased_pipe"
+		"0": "create_biotech:block/pipes/encased_opening",
+		"particle": "create_biotech:block/pipes/encased_opening"
 	},
 	"elements": [
 		{

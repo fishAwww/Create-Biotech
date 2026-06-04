@@ -8,9 +8,9 @@ import net.createmod.catnip.render.SpriteShifter;
 
 public class PowerBeltSpriteShifts {
 
-	public static final SpriteShiftEntry BELT = get("block/belt", "block/power_belt_scroll"),
-		BELT_OFFSET = get("block/belt_offset", "block/power_belt_scroll"),
-		BELT_DIAGONAL = get("block/belt_diagonal", "block/power_belt_diagonal_scroll");
+	public static final SpriteShiftEntry BELT = get("block/belt", "block/power_belt/scroll"),
+		BELT_OFFSET = get("block/belt_offset", "block/power_belt/scroll"),
+		BELT_DIAGONAL = get("block/belt_diagonal", "block/power_belt/diagonal_scroll");
 
 	private PowerBeltSpriteShifts() {}
 

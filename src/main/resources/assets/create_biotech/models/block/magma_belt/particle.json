@@ -1,5 +1,5 @@
 {
   "textures": {
-    "particle": "create_biotech:block/magma_belt"
+    "particle": "create_biotech:block/magma_belt/base"
   }
 }

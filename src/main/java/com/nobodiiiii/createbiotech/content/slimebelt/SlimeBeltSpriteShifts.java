@@ -8,9 +8,9 @@ import net.createmod.catnip.render.SpriteShifter;
 
 public class SlimeBeltSpriteShifts {
 
-	public static final SpriteShiftEntry BELT = get("block/belt", "block/slime_belt_scroll"),
-		BELT_OFFSET = get("block/belt_offset", "block/slime_belt_scroll"),
-		BELT_DIAGONAL = get("block/belt_diagonal", "block/slime_belt_diagonal_scroll");
+	public static final SpriteShiftEntry BELT = get("block/belt", "block/slime_belt/scroll"),
+		BELT_OFFSET = get("block/belt_offset", "block/slime_belt/scroll"),
+		BELT_DIAGONAL = get("block/belt_diagonal", "block/slime_belt/diagonal_scroll");
 
 	private SlimeBeltSpriteShifts() {}
 

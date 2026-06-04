@@ -1,5 +1,5 @@
 {
-  "parent": "create_biotech:block/spider_assembly_table/item",
+  "parent": "create_biotech:block/spider_assembly_table/inventory",
   "display": {
     "thirdperson_righthand": {
       "rotation": [30, 160, 0],

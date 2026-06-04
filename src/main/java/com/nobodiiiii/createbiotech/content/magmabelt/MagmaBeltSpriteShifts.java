@@ -8,9 +8,9 @@ import net.createmod.catnip.render.SpriteShifter;
 
 public class MagmaBeltSpriteShifts {
 
-	public static final SpriteShiftEntry BELT = get("block/belt", "block/magma_belt_scroll"),
-		BELT_OFFSET = get("block/belt_offset", "block/magma_belt_scroll"),
-		BELT_DIAGONAL = get("block/belt_diagonal", "block/magma_belt_diagonal_scroll");
+	public static final SpriteShiftEntry BELT = get("block/belt", "block/magma_belt/scroll"),
+		BELT_OFFSET = get("block/belt_offset", "block/magma_belt/scroll"),
+		BELT_DIAGONAL = get("block/belt_diagonal", "block/magma_belt/diagonal_scroll");
 
 	private MagmaBeltSpriteShifts() {}
 

@@ -1,7 +1,7 @@
 {
 	"credit": "Made with Blockbench",
 	"textures": {
-		"0": "create_biotech:block/pipes_connected",
+		"0": "create_biotech:block/pipes/casing_connected",
 		"particle": "block/copper_block"
 	},
 	"elements": [

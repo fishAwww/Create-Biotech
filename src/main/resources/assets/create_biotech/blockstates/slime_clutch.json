@@ -1,28 +1,28 @@
 {
   "variants": {
     "axis=x,powered=false": {
-      "model": "create_biotech:block/slime_clutch/block",
+      "model": "create_biotech:block/slime_clutch/base_unpowered",
       "x": 90,
       "y": 90
     },
     "axis=x,powered=true": {
-      "model": "create_biotech:block/slime_clutch/block_powered",
+      "model": "create_biotech:block/slime_clutch/base_powered",
       "x": 90,
       "y": 90
     },
     "axis=y,powered=false": {
-      "model": "create_biotech:block/slime_clutch/block"
+      "model": "create_biotech:block/slime_clutch/base_unpowered"
     },
     "axis=y,powered=true": {
-      "model": "create_biotech:block/slime_clutch/block_powered"
+      "model": "create_biotech:block/slime_clutch/base_powered"
     },
     "axis=z,powered=false": {
-      "model": "create_biotech:block/slime_clutch/block",
+      "model": "create_biotech:block/slime_clutch/base_unpowered",
       "x": 90,
       "y": 180
     },
     "axis=z,powered=true": {
-      "model": "create_biotech:block/slime_clutch/block_powered",
+      "model": "create_biotech:block/slime_clutch/base_powered",
       "x": 90,
       "y": 180
     }

@@ -4,10 +4,10 @@
 	"ambientocclusion": false,
 	"render_type": "minecraft:translucent",
 	"textures": {
-		"particle": "create_biotech:block/petri_dish_asurine",
-		"asurine": "create_biotech:block/petri_dish_asurine",
-		"outer": "create_biotech:block/petri_dish_asurine_outer",
-		"glass": "create_biotech:block/petri_dish_glass_cube"
+		"particle": "create_biotech:block/petri_dish/asurine_fill",
+		"asurine": "create_biotech:block/petri_dish/asurine_fill",
+		"outer": "create_biotech:block/petri_dish/asurine_rim",
+		"glass": "create_biotech:block/petri_dish/glass_cube"
 	},
 	"elements": [
 		{

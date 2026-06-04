@@ -1,6 +1,0 @@
-{
-  "parent": "create_biotech:block/bio_packager/block",
-  "textures": {
-    "2": "create_biotech:block/bio_packager_horizontal_powered"
-  }
-}

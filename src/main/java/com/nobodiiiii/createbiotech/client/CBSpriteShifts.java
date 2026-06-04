@@ -14,9 +14,9 @@ public class CBSpriteShifts {
 		EXPLOSION_PROOF_CASING = omni("explosion_proof_casing"),
 		EXPLOSION_PROOF_CASING_SIDE = omni("explosion_proof_casing_side"),
 		BLAST_PROOF_FRAMED_GLASS = omni("blast_proof_framed_glass"),
-		EXPERIENCE_TANK = rectangle("experience_tank"),
-		EXPERIENCE_TANK_TOP = rectangle("experience_tank_top"),
-		EXPERIENCE_TANK_INNER = rectangle("experience_tank_inner");
+		EXPERIENCE_TANK = rectangle("experience_tank/base"),
+		EXPERIENCE_TANK_TOP = rectangle("experience_tank/top"),
+		EXPERIENCE_TANK_INNER = rectangle("experience_tank/inner");
 
 	public static final Couple<CTSpriteShiftEntry> EXPLOSION_PROOF_ITEM_VAULT_TOP = vault("explosion_proof_item_vault_top"),
 		EXPLOSION_PROOF_ITEM_VAULT_FRONT = vault("explosion_proof_item_vault_front"),

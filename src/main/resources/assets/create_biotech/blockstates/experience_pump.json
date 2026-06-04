@@ -1,28 +1,28 @@
 {
   "variants": {
     "facing=down": {
-      "model": "create_biotech:block/experience_pump/block",
+      "model": "create_biotech:block/experience_pump/base",
       "x": 180
     },
     "facing=east": {
-      "model": "create_biotech:block/experience_pump/block",
+      "model": "create_biotech:block/experience_pump/base",
       "x": 90,
       "y": 90
     },
     "facing=north": {
-      "model": "create_biotech:block/experience_pump/block",
+      "model": "create_biotech:block/experience_pump/base",
       "x": 90
     },
     "facing=south": {
-      "model": "create_biotech:block/experience_pump/block",
+      "model": "create_biotech:block/experience_pump/base",
       "x": 90,
       "y": 180
     },
     "facing=up": {
-      "model": "create_biotech:block/experience_pump/block"
+      "model": "create_biotech:block/experience_pump/base"
     },
     "facing=west": {
-      "model": "create_biotech:block/experience_pump/block",
+      "model": "create_biotech:block/experience_pump/base",
       "x": 90,
       "y": 270
     }

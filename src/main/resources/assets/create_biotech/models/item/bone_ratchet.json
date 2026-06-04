@@ -1,5 +1,5 @@
 {
-  "parent": "create_biotech:block/bone_ratchet/item",
+  "parent": "create_biotech:block/bone_ratchet/inventory",
   "display": {
     "gui": {
       "rotation": [30, 315, -90],
